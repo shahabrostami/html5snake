@@ -1,0 +1,30 @@
+{"frames": [
+
+{
+	"filename": "body.jpg",
+	"frame": {"x":2,"y":2,"w":50,"h":50},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":50,"h":50},
+	"sourceSize": {"w":50,"h":50},
+	"pivot": {"x":0.5,"y":0.5}
+},
+{
+	"filename": "head.jpg",
+	"frame": {"x":54,"y":2,"w":50,"h":50},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":50,"h":50},
+	"sourceSize": {"w":50,"h":50},
+	"pivot": {"x":0.5,"y":0.5}
+}],
+"meta": {
+	"app": "http://www.codeandweb.com/texturepacker",
+	"version": "1.0",
+	"image": "snake.png",
+	"format": "RGBA8888",
+	"size": {"w":106,"h":54},
+	"scale": "1",
+	"smartupdate": "$TexturePacker:SmartUpdate:4ee01b038fd97ed6249b6738c72b4c7e:8b9ffa6871b872cc61ba36e88e30af00:2a194967d71da88bdc69ff162da0bdf1$"
+}
+}
