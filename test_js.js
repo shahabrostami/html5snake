@@ -1,6 +1,7 @@
 <!-- hide script from old browsers
 
 var game = new Game();
+var list = new List();
 
 function init() {
 	var canvasMain = document.getElementById('main');
@@ -22,12 +23,16 @@ function Game() {
 		this.canvas = document.getElementById('snake');
 		if(this.canvas.getContext) {
 			this.canvas = this.canvas.getContext('2d');
-			SnakeH.prototype.context = this.canvas;
-			SnakeH.prototype.canvasWidth = this.canvas.width;
-			SnakeH.prototype.canvasHeight = this.canvas.height;
+			SnakePiece.prototype.context = this.canvas;
+			SnakePiece.prototype.canvasWidth = this.canvas.width;
+			SnakePiece.prototype.canvasHeight = this.canvas.height;
 			
 			this.snakeH = new SnakeH();
-			this.snakeH.init(0,0, 50, 50);
+			this.snakeH.init(0, 0, 50, 50);
+            List.add(this.snakeH);
+            this.snakeB = new SnakeB();
+			this.snakeB.init(-50, 0, 50, 50);
+            List.add(this.snakeB);
 			return true;
 		} else {
 			return false;
@@ -35,7 +40,6 @@ function Game() {
 	}
 
 	this.start = function() {
-        this.snakeH.draw();
         animate();
 	}
 }
@@ -46,9 +50,9 @@ function Drawable() {
 		this.y = y;
         this.width = width;
         this.height = height;
+        this.newx = this.x;
+        this.newy = this.y;
 	}
-    this.newx = 0;
-    this.newy = 0;
 	this.speed = 0;
     this.directionY = 0;
 	this.canvasWidth = 0;
@@ -58,10 +62,41 @@ function Drawable() {
 	};
 }
 
+function List () {
+    List.makeNode=function() {
+        return{data:null, next:null};
+    };
+    
+    this.start = null;
+    this.end = null;
+    List.add=function(data) {
+        if(this.start==null) {
+            this.start=List.makeNode();
+            this.end = this.start;
+        }
+        else {
+            this.end.next=List.makeNode();
+            this.end=this.end.next;
+        }
+        this.end.data=data;
+    };
+    
+    List.update=function() {
+        var current = List.start;
+        console.log(List.start);
+        while(current.next !== null) {
+            current.next.data.x = current.data.x;
+            current.next.data.y = current.data.y;
+            current = current.next;
+        }
+    }
+}
+
 var imageRepo = new function() {
 	this.snakeH = new Image();
+    this.snakeB = new Image();
     
-    var numImages = 1;
+    var numImages = 2;
     var numImagesLoaded = 0;
     function imageLoaded() {
         numImagesLoaded++;
@@ -74,20 +109,29 @@ var imageRepo = new function() {
         imageLoaded();
     }
     
+    this.snakeB.onload = function () {
+        imageLoaded();
+    }
+    
+    this.snakeB.src = "img/body.jpg";
 	this.snakeH.src = "img/head.jpg";
 }
 
-function SnakeH() {
+function SnakePiece() {
 	this.speed = 1;
     this.directionX = 1;
     var timer = 0;
+    this.clear = function() {
+        console.log(this.x);
+        console.log(this.y);
+        this.context.clearRect(this.x, this.y, this.width, this.height);
+    }
 	this.draw = function() {
         timer += this.speed;
         if(timer % this.width == 0) {
             this.newx = this.x + (this.width * this.directionX);
             this.newy = this.y + (this.height * this.directionY);
-            this.context.clearRect(this.x, this.y, this.width, this.height);
-            this.context.drawImage(imageRepo.snakeH, this.newx, this.newy);
+            this.context.drawImage(this.img, this.newx, this.newy);
         }
         this.x = this.newx;
         this.y = this.newy;
@@ -118,15 +162,32 @@ function SnakeH() {
 				if (this.y >= this.canvasHeight - this.height)
 					this.y = this.canvasHeight - this.height;
 			}
-			this.draw();
 		}
     };
-} SnakeH.prototype = new Drawable();
+} SnakePiece.prototype = new Drawable();
+
+function SnakeH () {
+    this.img = imageRepo.snakeH;
+} SnakeH.prototype = new SnakePiece();
+
+function SnakeB () {
+    this.img = imageRepo.snakeB;
+} SnakeB.prototype = new SnakePiece();
 
 function animate() {
 	requestAnimFrame( animate );
-	game.snakeH.draw();
-    game.snakeH.move();
+	var current = List.start;
+    current.data.clear();
+    current.data.draw();
+    current.data.move();
+    current = current.next;
+    currentTemp = current;
+    while(current !== null) {
+            currentTemp.data.clear();
+            current.data.draw();
+            currentTemp = current;
+            current = current.next;
+    }
 }
 
 /**
