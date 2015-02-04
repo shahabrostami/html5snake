@@ -2,6 +2,7 @@
 
 var game = new Game();
 var list = new List();
+var timer = 1;
 
 function init() {
 	var canvasMain = document.getElementById('main');
@@ -28,10 +29,19 @@ function Game() {
 			SnakePiece.prototype.canvasHeight = this.canvas.height;
 			
 			this.snakeH = new SnakeH();
-			this.snakeH.init(0, 0, 50, 50);
+			this.snakeH.init(100, 0, 50, 50);
             List.add(this.snakeH);
             this.snakeB = new SnakeB();
-			this.snakeB.init(-50, 0, 50, 50);
+            this.snakeB.init(50, 0, 50, 50);
+            List.add(this.snakeB);
+            this.snakeB = new SnakeB();
+            this.snakeB.init(50, 0, 50, 50);
+            List.add(this.snakeB);
+            this.snakeB = new SnakeB();
+            this.snakeB.init(50, 0, 50, 50);
+            List.add(this.snakeB);
+            this.snakeB = new SnakeB();
+            this.snakeB.init(50, 0, 50, 50);
             List.add(this.snakeB);
 			return true;
 		} else {
@@ -40,6 +50,11 @@ function Game() {
 	}
 
 	this.start = function() {
+        var current = List.start;
+        while(current !== null) {
+                current.data.draw();
+                current = current.next;
+        }
         animate();
 	}
 }
@@ -50,8 +65,8 @@ function Drawable() {
 		this.y = y;
         this.width = width;
         this.height = height;
-        this.newx = this.x;
-        this.newy = this.y;
+        this.prevx = this.x;
+        this.prevy = this.y;
 	}
 	this.speed = 0;
     this.directionY = 0;
@@ -64,7 +79,7 @@ function Drawable() {
 
 function List () {
     List.makeNode=function() {
-        return{data:null, next:null};
+        return{data:null, next:null, prev:null};
     };
     
     this.start = null;
@@ -73,20 +88,23 @@ function List () {
         if(this.start==null) {
             this.start=List.makeNode();
             this.end = this.start;
+            this.end.prev = this.start;
         }
         else {
             this.end.next=List.makeNode();
+            this.end.next.prev = this.end;
             this.end=this.end.next;
         }
         this.end.data=data;
     };
     
     List.update=function() {
-        var current = List.start;
-        console.log(List.start);
-        while(current.next !== null) {
-            current.next.data.x = current.data.x;
-            current.next.data.y = current.data.y;
+        var current = List.start.next;
+        while(current !== null) {
+            current.data.prevx = current.data.x;
+            current.data.prevy = current.data.y;
+            current.data.x = current.prev.data.prevx;
+            current.data.y = current.prev.data.prevy;
             current = current.next;
         }
     }
@@ -120,22 +138,9 @@ var imageRepo = new function() {
 function SnakePiece() {
 	this.speed = 1;
     this.directionX = 1;
-    var timer = 0;
     this.clear = function() {
-        console.log(this.x);
-        console.log(this.y);
-        this.context.clearRect(this.x, this.y, this.width, this.height);
+        this.context.clearRect(this.prevx, this.prevy, this.width, this.height);
     }
-	this.draw = function() {
-        timer += this.speed;
-        if(timer % this.width == 0) {
-            this.newx = this.x + (this.width * this.directionX);
-            this.newy = this.y + (this.height * this.directionY);
-            this.context.drawImage(this.img, this.newx, this.newy);
-        }
-        this.x = this.newx;
-        this.y = this.newy;
-	};
     
     this.move = function() {
 		// Determine if the action is move action
@@ -168,25 +173,41 @@ function SnakePiece() {
 
 function SnakeH () {
     this.img = imageRepo.snakeH;
+    this.update = function() {
+            this.prevx = this.x;
+            this.prevy = this.y;
+            this.x = this.x + (this.width * this.directionX);
+            this.y = this.y + (this.height * this.directionY);
+    };
+    this.draw = function() {
+            this.context.drawImage(this.img, this.x, this.y);
+    }
 } SnakeH.prototype = new SnakePiece();
 
 function SnakeB () {
+    var timer = 0;
+    this.draw = function() {       
+        this.context.drawImage(this.img, this.x, this.y);
+    };
     this.img = imageRepo.snakeB;
 } SnakeB.prototype = new SnakePiece();
 
 function animate() {
 	requestAnimFrame( animate );
-	var current = List.start;
-    current.data.clear();
-    current.data.draw();
+    var current = List.start;
+    timer += current.data.speed;
     current.data.move();
-    current = current.next;
-    currentTemp = current;
-    while(current !== null) {
-            currentTemp.data.clear();
-            current.data.draw();
-            currentTemp = current;
-            current = current.next;
+    if(timer % current.data.width == 0)
+    {
+        current.data.update();
+        current.data.draw();
+        List.update();
+        current = current.next;
+        while(current !== null) {
+                current.data.draw();
+                current = current.next;
+        }
+        List.end.data.clear();
     }
 }
 
