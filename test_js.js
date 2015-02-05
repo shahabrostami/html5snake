@@ -5,31 +5,27 @@ var list = new List();
 var timer = 1;
 
 function init() {
-	var canvasMain = document.getElementById('main');
-	var canvasSnake = document.getElementById('snake');
-	Canvas_Resize(canvasMain);
-	Canvas_Resize(canvasSnake);
-	
-	if(game.init())
-		game.start();
+    var canvasMain = document.getElementById('main');
+    var canvasSnake = document.getElementById('snake');
+    Canvas_Resize(canvasMain);
+    Canvas_Resize(canvasSnake);
+    if(game.init())
+        game.start();
 }
 
 function Canvas_Resize(canvas) {
-	canvas.width = window.innerWidth;
-	canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 }
 
 function Game() {
-	this.init = function() {
-		this.canvas = document.getElementById('snake');
-		if(this.canvas.getContext) {
-			this.canvas = this.canvas.getContext('2d');
-			SnakePiece.prototype.context = this.canvas;
-			SnakePiece.prototype.canvasWidth = this.canvas.width;
-			SnakePiece.prototype.canvasHeight = this.canvas.height;
-			
-			this.snakeH = new SnakeH();
-			this.snakeH.init(100, 0, 50, 50);
+    this.init = function() {
+        this.canvas = document.getElementById('snake');
+        if(this.canvas.getContext) {
+            this.canvas = this.canvas.getContext('2d');
+            SnakePiece.prototype.context = this.canvas;
+            this.snakeH = new SnakeH();
+            this.snakeH.init(500, 0, 50, 50);
             List.add(this.snakeH);
             this.snakeB = new SnakeB();
             this.snakeB.init(50, 0, 50, 50);
@@ -43,38 +39,36 @@ function Game() {
             this.snakeB = new SnakeB();
             this.snakeB.init(50, 0, 50, 50);
             List.add(this.snakeB);
-			return true;
-		} else {
-			return false;
-		}
-	}
+            return true;
+        } else {
+            return false;
+        }
+    }
 
-	this.start = function() {
+    this.start = function() {
         var current = List.start;
         while(current !== null) {
                 current.data.draw();
                 current = current.next;
         }
         animate();
-	}
+    }
 }
 
 function Drawable() {
-	this.init = function(x, y, width, height) {
-		this.x = x;
-		this.y = y;
+    this.init = function(x, y, width, height) {
+        this.x = x;
+        this.y = y;
         this.width = width;
         this.height = height;
         this.prevx = this.x;
         this.prevy = this.y;
-	}
-	this.speed = 0;
-    this.directionY = 0;
-	this.canvasWidth = 0;
-	this.canvasHeight = 0;
+    }
+    this.canvasWidth = window.innerWidth;
+    this.canvasHeight = window.innerHeight;
 
-	this.draw = function() {	
-	};
+    this.draw = function() {    
+    };
 }
 
 function List () {
@@ -111,7 +105,7 @@ function List () {
 }
 
 var imageRepo = new function() {
-	this.snakeH = new Image();
+    this.snakeH = new Image();
     this.snakeB = new Image();
     
     var numImages = 2;
@@ -132,52 +126,62 @@ var imageRepo = new function() {
     }
     
     this.snakeB.src = "img/body.jpg";
-	this.snakeH.src = "img/head.jpg";
+    this.snakeH.src = "img/head.jpg";
 }
 
 function SnakePiece() {
-	this.speed = 1;
-    this.directionX = 1;
+    this.speed = 1;
     this.clear = function() {
         this.context.clearRect(this.prevx, this.prevy, this.width, this.height);
     }
     
     this.move = function() {
-		// Determine if the action is move action
-		if (KEY_STATUS.left || KEY_STATUS.right ||
-			KEY_STATUS.down || KEY_STATUS.up) {
-			if (KEY_STATUS.left) {
+        // Determine if the action is move action
+        if (KEY_STATUS.left || KEY_STATUS.right ||
+            KEY_STATUS.down || KEY_STATUS.up) {
+            if (KEY_STATUS.left) {
                 this.directionX = -1;
                 this.directionY = 0;
-				if (this.x <= 0) 
-					this.x = 0;
-			} else if (KEY_STATUS.right) {
-				this.directionX = 1;
+                if (this.x <= 0) 
+                    this.x = 0;
+            } else if (KEY_STATUS.right) {
+                this.directionX = 1;
                 this.directionY = 0;
-				if (this.x >= this.canvasWidth - this.width)
-					this.x = this.canvasWidth - this.width;
-			} else if (KEY_STATUS.up) {
-				this.directionY = -1;
+                if (this.x >= this.canvasWidth - this.width)
+                    this.x = this.canvasWidth - this.width;
+            } else if (KEY_STATUS.up) {
+                this.directionY = -1;
                 this.directionX = 0;
-				if (this.y <= this.canvasHeight - this.height)
-					this.y = this.canvasHeight - this.height;
-			} else if (KEY_STATUS.down) {
-				this.directionY = 1;
+                if (this.y <= this.canvasHeight - this.height)
+                    this.y = this.canvasHeight - this.height;
+            } else if (KEY_STATUS.down) {
+                this.directionY = 1;
                 this.directionX = 0;
-				if (this.y >= this.canvasHeight - this.height)
-					this.y = this.canvasHeight - this.height;
-			}
-		}
+                if (this.y >= this.canvasHeight - this.height)
+                    this.y = this.canvasHeight - this.height;
+            }
+        }
     };
 } SnakePiece.prototype = new Drawable();
 
 function SnakeH () {
     this.img = imageRepo.snakeH;
+    this.directionX = 1;
+    this.directionY = 0;
+    this.speed = 1;
     this.update = function() {
             this.prevx = this.x;
             this.prevy = this.y;
             this.x = this.x + (this.width * this.directionX);
             this.y = this.y + (this.height * this.directionY);
+            if(this.x >= this.canvasWidth)
+                this.x = 0;
+            if(this.x < 0)
+                this.x = this.canvasWidth;
+            if(this.y >= this.canvasHeight)
+                this.y = 0;
+            if(this.y < 0)
+                this.y = this.canvasHeight-50;
     };
     this.draw = function() {
             this.context.drawImage(this.img, this.x, this.y);
@@ -193,7 +197,7 @@ function SnakeB () {
 } SnakeB.prototype = new SnakePiece();
 
 function animate() {
-	requestAnimFrame( animate );
+    requestAnimFrame( animate );
     var current = List.start;
     timer += current.data.speed;
     current.data.move();
@@ -217,14 +221,14 @@ function animate() {
  * otherwise defaults to setTimeout().
  */
 window.requestAnimFrame = (function(){
-	return  window.requestAnimationFrame   ||
-			window.webkitRequestAnimationFrame ||
-			window.mozRequestAnimationFrame    ||
-			window.oRequestAnimationFrame      ||
-			window.msRequestAnimationFrame     ||
-			function(/* function */ callback, /* DOMElement */ element){
-				window.setTimeout(callback, 1000 / 60);
-			};
+    return  window.requestAnimationFrame   ||
+            window.webkitRequestAnimationFrame ||
+            window.mozRequestAnimationFrame    ||
+            window.oRequestAnimationFrame      ||
+            window.msRequestAnimationFrame     ||
+            function(/* function */ callback, /* DOMElement */ element){
+                window.setTimeout(callback, 1000 / 60);
+            };
 })();
 
 // The keycodes that will be mapped when a user presses a button.
