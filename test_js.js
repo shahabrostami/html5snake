@@ -18,14 +18,25 @@ function Canvas_Resize(canvas) {
     canvas.height = window.innerHeight;
 }
 
+function Spawn_Food() {
+   var foodX = Math.floor((Math.random() * game.screenWidth) + 1) * game.cellSize;
+   var foodY = Math.floor((Math.random() * game.screenHeight) + 1)* game.cellSize;
+   var food = new Food();
+   food.init(foodX, foodY);
+   food.draw();
+}
+
 function Game() {
+    this.screenWidth = Math.ceil(window.innerWidth / 50);
+    this.screenHeight = Math.ceil(window.innerHeight / 50);
+    this.cellSize = 50;
     this.init = function() {
         this.canvas = document.getElementById('snake');
         if(this.canvas.getContext) {
             this.canvas = this.canvas.getContext('2d');
-            SnakePiece.prototype.context = this.canvas;
+            Drawable.prototype.context = this.canvas;
             this.snakeH = new SnakeH();
-            this.snakeH.init(500, 0, 50, 50);
+            this.snakeH.init(100, 0, 50, 50);
             List.add(this.snakeH);
             this.snakeB = new SnakeB();
             this.snakeB.init(50, 0, 50, 50);
@@ -39,6 +50,8 @@ function Game() {
             this.snakeB = new SnakeB();
             this.snakeB.init(50, 0, 50, 50);
             List.add(this.snakeB);
+
+            Spawn_Food();
             return true;
         } else {
             return false;
@@ -61,8 +74,6 @@ function Drawable() {
         this.y = y;
         this.width = width;
         this.height = height;
-        this.prevx = this.x;
-        this.prevy = this.y;
     }
     this.canvasWidth = window.innerWidth;
     this.canvasHeight = window.innerHeight;
@@ -91,6 +102,17 @@ function List () {
         }
         this.end.data=data;
     };
+
+    List.check=function() {
+        var current = List.start.next;
+        while(current !== null) {
+            if(List.start.data.x == current.data.x && List.start.data.y == current.data.y)
+                return 1;
+            current = current.next;
+        }
+        return 0;
+        
+    }
     
     List.update=function() {
         var current = List.start.next;
@@ -131,6 +153,8 @@ var imageRepo = new function() {
 
 function SnakePiece() {
     this.speed = 1;
+    this.prevx = this.x;
+    this.prevy = this.y;
     this.clear = function() {
         this.context.clearRect(this.prevx, this.prevy, this.width, this.height);
     }
@@ -147,22 +171,30 @@ function SnakePiece() {
             } else if (KEY_STATUS.right) {
                 this.directionX = 1;
                 this.directionY = 0;
-                if (this.x >= this.canvasWidth - this.width)
-                    this.x = this.canvasWidth - this.width;
             } else if (KEY_STATUS.up) {
                 this.directionY = -1;
                 this.directionX = 0;
-                if (this.y <= this.canvasHeight - this.height)
-                    this.y = this.canvasHeight - this.height;
             } else if (KEY_STATUS.down) {
                 this.directionY = 1;
                 this.directionX = 0;
-                if (this.y >= this.canvasHeight - this.height)
-                    this.y = this.canvasHeight - this.height;
             }
         }
     };
 } SnakePiece.prototype = new Drawable();
+
+function Food () {
+    this.img = imageRepo.snakeH;
+    this.x = 0;
+    this.y = 0;
+    this.init = function(x,y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    this.draw = function() {
+        this.context.drawImage(this.img, this.x, this.y);
+    }
+} Food.prototype = new Drawable();
 
 function SnakeH () {
     this.img = imageRepo.snakeH;
@@ -177,11 +209,14 @@ function SnakeH () {
             if(this.x >= this.canvasWidth)
                 this.x = 0;
             if(this.x < 0)
-                this.x = this.canvasWidth;
+                this.x = this.canvasWidth-50;
             if(this.y >= this.canvasHeight)
                 this.y = 0;
             if(this.y < 0)
                 this.y = this.canvasHeight-50;
+
+            if(List.check() === 1)
+                alert("YOU LOSE!");
     };
     this.draw = function() {
             this.context.drawImage(this.img, this.x, this.y);
