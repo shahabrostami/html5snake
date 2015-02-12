@@ -21,11 +21,18 @@ function Canvas_Resize(canvas) {
     canvas.height = window.innerHeight - (window.innerHeight % 50);
 }
 
+function Calculate_Food_Position() {
+    var foodX = Math.floor((Math.random() * game.screenWidth)) * game.cellSize;
+    var foodY = Math.floor((Math.random() * game.screenHeight))* game.cellSize;
+    return {x: foodX, y: foodY};
+}
+
 function Spawn_Food() {
-   var foodX = Math.floor((Math.random() * game.screenWidth)) * game.cellSize;
-   var foodY = Math.floor((Math.random() * game.screenHeight))* game.cellSize;
-   food.init(foodX, foodY);
-   food.draw();
+    var data = Calculate_Food_Position();
+    while(List.check(List.start, data.x, data.y) == 1 && (data.x !== List.end.data.prevx && data.y !== List.end.data.prevy))
+        var data = Calculate_Food_Position();
+    food.init(data.x, data.y);
+    food.draw();
 }
 
 function Game() {
@@ -83,13 +90,16 @@ function List () {
     
     this.start = null;
     this.end = null;
-    this.size = 0;
+    this.size = null;
+    var size = 1;
+    
     List.add=function(data) {
         if(this.start==null) {
             this.start=List.makeNode();
             this.end = this.start;
             this.end.prev = this.start;
-            this.size++;
+            size++;
+            this.size = size;
         }
         else {
             this.end.next=List.makeNode();
@@ -99,10 +109,9 @@ function List () {
         this.end.data=data;
     };
 
-    List.check=function() {
-        var current = List.start.next;
+    List.check=function(current, x, y) {
         while(current !== null) {
-            if(List.start.data.x == current.data.x && List.start.data.y == current.data.y)
+            if(x == current.data.x && y == current.data.y)
                 return 1;
             current = current.next;
         }
@@ -113,11 +122,14 @@ function List () {
         var current = List.start.next;
         if(List.start.data.x == food.x && List.start.data.y == food.y)
         {
-            Spawn_Food();
             var snakeB = new SnakeB();
             snakeB.init(50, 0, 50, 50);
             List.add(snakeB);
-            List.start.data.speed -= 5;
+            if(List.start.data.speed !== 10)
+                List.start.data.speed -= 5;
+            else if(List.start.data.speed > 2)
+                List.start.data.speed -= 2;
+            Spawn_Food();
         }
     }
     
@@ -202,10 +214,10 @@ function Food () {
     this.init = function(x,y) {
         this.x = x;
         this.y = y;
-    }
+    };
     this.draw = function() {
         this.context.drawImage(this.img, this.x, this.y);
-    }
+    };
 } Food.prototype = new Drawable();
 
 function SnakeH () {
@@ -226,15 +238,14 @@ function SnakeH () {
             if(this.y < 0)
                 this.y = this.canvasHeight-50;
 
-            if(List.check() === 1)
-                alert("YOU LOSE!");
+            if(List.check(List.start.next, List.start.data.x, List.start.data.y) === 1)
+                alert("YOU LOSE! Your score: " + List.size);
 
-            if(List.checkFood() === 1)
-                alert("yay!");
+            List.checkFood();
     };
     this.draw = function() {
             this.context.drawImage(this.img, this.x, this.y);
-    }
+    };
 } SnakeH.prototype = new SnakePiece();
 
 function SnakeB () {
