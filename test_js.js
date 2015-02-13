@@ -28,6 +28,7 @@ function Calculate_Food_Position() {
 }
 
 function Spawn_Food() {
+    food.clear();
     var data = Calculate_Food_Position();
     while(List.check(List.start, data.x, data.y) == 1 && (data.x !== List.end.data.prevx && data.y !== List.end.data.prevy))
         var data = Calculate_Food_Position();
@@ -40,23 +41,33 @@ function Game() {
     this.screenHeight = Math.floor(window.innerHeight / 50);
     this.cellSize = 50;
     this.init = function() {
+        
         this.canvas = document.getElementById('snake');
         if(this.canvas.getContext) {
             this.canvas = this.canvas.getContext('2d');
-            Drawable.prototype.context = this.canvas;
-            var snakeH = new SnakeH();
-            snakeH.init(100, 0, 50, 50);
-            List.add(snakeH);
-            var snakeB = new SnakeB();
-            snakeB.init(50, 0, 50, 50);
-            List.add(snakeB);
-
-            food = new Food();
-            Spawn_Food();
-            return true;
+            SnakePiece.prototype.context = this.canvas;
         } else {
             return false;
         }
+
+        this.canvas = document.getElementById('main');
+        if(this.canvas.getContext) {
+            this.canvas = this.canvas.getContext('2d');
+            Food.prototype.context = this.canvas;
+        } else {
+            return false;
+        }
+
+        var snakeH = new SnakeH();
+        snakeH.init(100, 0, 50, 50);
+        List.add(snakeH);
+        var snakeB = new SnakeB();
+        snakeB.init(50, 0, 50, 50);
+        List.add(snakeB);
+
+        food = new Food();
+        Spawn_Food();
+        return true;
     }
 
     this.start = function() {
@@ -146,10 +157,14 @@ function List () {
 }
 
 var imageRepo = new function() {
-    this.snakeH = new Image();
+    this.snakeHL = new Image();
+    this.snakeHR = new Image();
+    this.snakeHU = new Image();
+    this.snakeHD = new Image();
     this.snakeB = new Image();
+    this.food = new Image();
     
-    var numImages = 2;
+    var numImages = 6;
     var numImagesLoaded = 0;
     function imageLoaded() {
         numImagesLoaded++;
@@ -158,16 +173,31 @@ var imageRepo = new function() {
         }
     }
  
-    this.snakeH.onload = function () {
+    this.snakeHL.onload = function () {
         imageLoaded();
     }
-    
+    this.snakeHU.onload = function () {
+        imageLoaded();
+    }
+    this.snakeHD.onload = function () {
+        imageLoaded();
+    }
+    this.snakeHR.onload = function () {
+        imageLoaded();
+    }
     this.snakeB.onload = function () {
+        imageLoaded();
+    }
+    this.food.onload = function () {
         imageLoaded();
     }
     
     this.snakeB.src = "img/body.jpg";
-    this.snakeH.src = "img/head.jpg";
+    this.snakeHL.src = "img/headLeft.jpg";
+    this.snakeHR.src = "img/headRight.jpg";
+    this.snakeHU.src = "img/headUp.jpg";
+    this.snakeHD.src = "img/headDown.jpg";
+    this.food.src = "img/food2.png";
 }
 
 function SnakePiece() {
@@ -185,21 +215,25 @@ function SnakePiece() {
             if (KEY_STATUS.left) {
                 if(this.directionX == 1)
                     return;
+                this.img = this.imgL;
                 this.directionX = -1;
                 this.directionY = 0;
             } else if (KEY_STATUS.right) {
                 if(this.directionX == -1)
                     return;
+                this.img = this.imgR;
                 this.directionX = 1;
                 this.directionY = 0;
             } else if (KEY_STATUS.up) {
                 if(this.directionY == 1)
                     return;
+                this.img = this.imgU;
                 this.directionY = -1;
                 this.directionX = 0;
             } else if (KEY_STATUS.down) {
                 if(this.directionY == -1)
                     return;
+                this.img = this.imgD;
                 this.directionY = 1;
                 this.directionX = 0;
             }
@@ -208,20 +242,29 @@ function SnakePiece() {
 } SnakePiece.prototype = new Drawable();
 
 function Food () {
-    this.img = imageRepo.snakeH;
+    this.img = imageRepo.food;
     this.x = 0;
     this.y = 0;
+    this.width = game.cellSize;
+    this.height = game.cellSize;
     this.init = function(x,y) {
         this.x = x;
         this.y = y;
     };
+    this.clear = function() {
+        this.context.clearRect(this.x, this.y, this.width, this.height);
+    }
     this.draw = function() {
         this.context.drawImage(this.img, this.x, this.y);
     };
 } Food.prototype = new Drawable();
 
 function SnakeH () {
-    this.img = imageRepo.snakeH;
+    this.imgR = imageRepo.snakeHR;
+    this.imgL = imageRepo.snakeHL;
+    this.imgU = imageRepo.snakeHU;
+    this.imgD = imageRepo.snakeHD;
+    this.img = imageRepo.snakeHR;
     this.directionX = 1;
     this.directionY = 0;
     this.update = function() {
