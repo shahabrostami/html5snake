@@ -3,3 +3,7 @@ body {
 	height: 100%;
 	margin: 0px; 
 }
+
+canvas#main {
+	 border:1px solid #DDD;
+}
