@@ -3,10 +3,13 @@
 var game = new Game();
 var list = new List();
 var food;
+var trees = new Array();
+var noOfTrees = 0;
 var timer = 0;
 
 function init() {
     var canvasMain = document.getElementById('main');
+    var canvasTree = document.getElementById('tree');
     var canvasSnake = document.getElementById('snake');
 
     var gameSize = "placeholder";
@@ -17,7 +20,7 @@ function init() {
     {
         Canvas_Resize(canvasMain);
         Canvas_Resize(canvasSnake);
-    
+        Canvas_Resize(canvasTree);
         game.start();
     }
 }
@@ -31,6 +34,16 @@ function Calculate_Food_Position() {
     var foodX = Math.floor((Math.random() * game.screenWidth)) * game.cellSize;
     var foodY = Math.floor((Math.random() * game.screenHeight))* game.cellSize;
     return {x: foodX, y: foodY};
+}
+
+function Spawn_Tree() {
+    trees[noOfTrees] = new Tree();
+    var data = Calculate_Food_Position();
+    while(List.check(List.start, data.x, data.y) == 1 && (data.x !== List.end.data.prevx && data.y !== List.end.data.prevy))
+        var data = Calculate_Food_Position();
+    trees[noOfTrees].init(data.x, data.y);
+    trees[noOfTrees].draw();
+    noOfTrees++;
 }
 
 function Spawn_Food() {
@@ -50,6 +63,7 @@ function Game() {
         this.cellSize = gameSize;
         this.screenWidth = Math.floor(window.innerWidth / this.cellSize);
         this.screenHeight = Math.floor(window.innerHeight / this.cellSize);
+        
         this.canvas = document.getElementById('snake');
         if(this.canvas.getContext) {
             this.canvas = this.canvas.getContext('2d');
@@ -57,7 +71,15 @@ function Game() {
         } else {
             return false;
         }
-
+        
+        this.canvas = document.getElementById('tree');
+        if(this.canvas.getContext) {
+            this.canvas = this.canvas.getContext('2d');
+            Tree.prototype.context = this.canvas;
+        } else {
+            return false;
+        }
+        
         this.canvas = document.getElementById('main');
         if(this.canvas.getContext) {
             this.canvas = this.canvas.getContext('2d');
@@ -79,6 +101,7 @@ function Game() {
         var current = List.start;
         food = new Food();
         Spawn_Food();
+        Spawn_Tree();
         while(current !== null) {
                 current.data.draw();
                 current = current.next;
@@ -134,6 +157,9 @@ function List () {
                 return 1;
             current = current.next;
         }
+        for(i = 0; i < noOfTrees; i++)
+            if(x == trees[i].x && y == trees[i].y)
+                return 1;
         return 0;
     }
 
@@ -149,6 +175,7 @@ function List () {
             else if(List.start.data.speed > 2)
                 List.start.data.speed -= 1;
             Spawn_Food();
+            Spawn_Tree();
         }
     }
     
@@ -170,6 +197,7 @@ var imageRepo = new function() {
     this.snakeHD = new Image();
     this.snakeB = new Image();
     this.food = new Image();
+    this.tree = new Image();
     
     var numImages = 6;
     var numImagesLoaded = 0;
@@ -198,6 +226,9 @@ var imageRepo = new function() {
     this.food.onload = function () {
         imageLoaded();
     }
+    this.tree.onload = function () {
+        imageLoaded();
+    }
     
     this.snakeB.src = "img/body.jpg";
     this.snakeHL.src = "img/headLeft.jpg";
@@ -205,6 +236,7 @@ var imageRepo = new function() {
     this.snakeHU.src = "img/headUp.jpg";
     this.snakeHD.src = "img/headDown.jpg";
     this.food.src = "img/food2.png";
+    this.tree.src = "img/tree.png";
 }
 
 function SnakePiece() {
@@ -247,6 +279,24 @@ function SnakePiece() {
         }
     };
 } SnakePiece.prototype = new Drawable();
+
+function Tree () {
+    this.img = imageRepo.tree;
+    this.x = 0;
+    this.y = 0;
+    this.init = function(x,y) {
+        this.width = game.cellSize;
+        this.height = game.cellSize;
+        this.x = x;
+        this.y = y;
+    };
+    this.clear = function() {
+        this.context.clearRect(this.x, this.y, this.width, this.height);
+    }
+    this.draw = function() {
+        this.context.drawImage(this.img, this.x, this.y, game.cellSize, game.cellSize);
+    };
+} Tree.prototype = new Drawable();
 
 function Food () {
     this.img = imageRepo.food;
@@ -316,9 +366,12 @@ function SnakeB () {
 function animate() {
     requestAnimFrame( animate );
     var current = List.start;
+    var speed = current.data.speed;
+    if(KEY_STATUS.space)
+        speed = 5;
     timer += 1;
     current.data.move();
-    if(timer % current.data.speed == 0)
+    if(timer % speed == 0)
     {
         current.data.update();
         current.data.draw();
