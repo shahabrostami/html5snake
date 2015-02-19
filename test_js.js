@@ -4,23 +4,31 @@ var game = new Game();
 var list = new List();
 var food;
 var trees = new Array();
+var shots = new Array();
+var noOfShots = 0;
 var noOfTrees = 0;
 var timer = 0;
+var keyPressed = false;
 
 function init() {
+	// Retrieve the canvas elements, allowing us to resize them to the correct inner size of window.
     var canvasMain = document.getElementById('main');
     var canvasTree = document.getElementById('tree');
     var canvasSnake = document.getElementById('snake');
+    var canvasShots = document.getElementById('shots');
 
+    // Make sure the user submits a valid numerical grid size between 10-100.
     var gameSize = "placeholder";
     while(isNaN(gameSize) || gameSize < 10 || gameSize > 100)
         gameSize = prompt("What is the game size?\nEnter a number between 10-100");
 
+    // Resize all the canvas elements to match the maximum number of cells within the window size are used.
     if(game.init(gameSize))
     {
         Canvas_Resize(canvasMain);
         Canvas_Resize(canvasSnake);
         Canvas_Resize(canvasTree);
+        Canvas_Resize(canvasShots);
         game.start();
     }
 }
@@ -30,17 +38,18 @@ function Canvas_Resize(canvas) {
     canvas.height = window.innerHeight - (window.innerHeight % game.cellSize);
 }
 
-function Calculate_Food_Position() {
-    var foodX = Math.floor((Math.random() * game.screenWidth)) * game.cellSize;
-    var foodY = Math.floor((Math.random() * game.screenHeight))* game.cellSize;
-    return {x: foodX, y: foodY};
+function Calculate_Random_Position() {
+    var calcX = Math.floor((Math.random() * game.screenWidth)) * game.cellSize;
+    var calcY = Math.floor((Math.random() * game.screenHeight))* game.cellSize;
+    return {x: calcX, y: calcY};
 }
 
 function Spawn_Tree() {
+	// Here we spawn a tree and ensure that it's position is 
     trees[noOfTrees] = new Tree();
-    var data = Calculate_Food_Position();
+    var data = Calculate_Random_Position();
     while(List.check(List.start, data.x, data.y) == 1 && (data.x !== List.end.data.prevx && data.y !== List.end.data.prevy))
-        var data = Calculate_Food_Position();
+        var data = Calculate_Random_Position();
     trees[noOfTrees].init(data.x, data.y);
     trees[noOfTrees].draw();
     noOfTrees++;
@@ -48,14 +57,15 @@ function Spawn_Tree() {
 
 function Spawn_Food() {
     food.clear();
-    var data = Calculate_Food_Position();
+    var data = Calculate_Random_Position();
     while(List.check(List.start, data.x, data.y) == 1 && (data.x !== List.end.data.prevx && data.y !== List.end.data.prevy))
-        var data = Calculate_Food_Position();
+        var data = Calculate_Random_Position();
     food.init(data.x, data.y);
     food.draw();
 }
 
 function Game() {
+	// Placeholder values
     this.cellSize = 0;
     this.screenWidth = Math.floor(window.innerWidth / 1);
     this.screenHeight = Math.floor(window.innerHeight / 1);
@@ -64,6 +74,7 @@ function Game() {
         this.screenWidth = Math.floor(window.innerWidth / this.cellSize);
         this.screenHeight = Math.floor(window.innerHeight / this.cellSize);
         
+        // Initialise the canvas elements and their respective object's context.
         this.canvas = document.getElementById('snake');
         if(this.canvas.getContext) {
             this.canvas = this.canvas.getContext('2d');
@@ -84,10 +95,20 @@ function Game() {
         if(this.canvas.getContext) {
             this.canvas = this.canvas.getContext('2d');
             Food.prototype.context = this.canvas;
+            Shot.prototype.context = this.canvas;
         } else {
             return false;
         }
 
+        this.canvas = document.getElementById('shots');
+        if(this.canvas.getContext) {
+            this.canvas = this.canvas.getContext('2d');
+            Shot.prototype.context = this.canvas;
+        } else {
+            return false;
+        }
+
+        // Create the initial snake head and body.
         var snakeH = new SnakeH();
         snakeH.init(game.cellSize*2, 0, game.cellSize, game.cellSize);
         List.add(snakeH);
@@ -98,6 +119,7 @@ function Game() {
     }
 
     this.start = function() {
+    	// Start the game by drawing out the initial snake body, spawning a piece of food and a tree.
         var current = List.start;
         food = new Food();
         Spawn_Food();
@@ -135,12 +157,15 @@ function List () {
     this.size = null;
     var size = -2;
     
+  
     List.add=function(data) {
+    	// Add a snake head if hasn't already.
         if(this.start==null) {
             this.start=List.makeNode();
             this.end = this.start;
             this.end.prev = this.start;
         }
+        // Otherwise, add a piece of snake body to the list.
         else {
             this.end.next=List.makeNode();
             this.end.next.prev = this.end;
@@ -152,6 +177,7 @@ function List () {
     };
 
     List.check=function(current, x, y) {
+    	// Check to see if the given node 'current' hasn't collided with any trees or other snake pieces.
         while(current !== null) {
             if(x == current.data.x && y == current.data.y)
                 return 1;
@@ -164,9 +190,11 @@ function List () {
     }
 
     List.checkFood=function() {
+    	// Check to see if a piece of food has been eaten.
         var current = List.start.next;
         if(List.start.data.x == food.x && List.start.data.y == food.y)
         {
+        	// If so, add a new snake piece body, speed up the snake and spawn another food and tree.
             var snakeB = new SnakeB();
             snakeB.init(game.cellSize, 0, game.cellSize, game.cellSize);
             List.add(snakeB);
@@ -180,6 +208,7 @@ function List () {
     }
     
     List.update=function() {
+    	// Update all the snake pieces using the previous node as the coordinates.
         var current = List.start.next;
         while(current !== null) {
             current.data.prevx = current.data.x;
@@ -191,6 +220,7 @@ function List () {
     }
 }
 var imageRepo = new function() {
+	// Initialie all images.
     this.snakeHL = new Image();
     this.snakeHR = new Image();
     this.snakeHU = new Image();
@@ -239,16 +269,18 @@ var imageRepo = new function() {
     this.tree.src = "img/tree.png";
 }
 
-function SnakePiece() {
-    this.speed = 50;
+function SnakePiece() {	
+	// snake piece struct, self explanatory, requires coordinates and the directions to move in.
+	this.speed = 50;
     this.prevx = this.x;
     this.prevy = this.y;
+
     this.clear = function() {
         this.context.clearRect(this.prevx, this.prevy, this.width, this.height);
     }
     
     this.move = function() {
-        // Determine if the action is move action
+        // Determine if the action is moving, if so, update accordingly.
         if (KEY_STATUS.left || KEY_STATUS.right ||
             KEY_STATUS.down || KEY_STATUS.up) {
             if (KEY_STATUS.left) {
@@ -281,6 +313,7 @@ function SnakePiece() {
 } SnakePiece.prototype = new Drawable();
 
 function Tree () {
+	// tree struct, self explanatory, only needs coordinates
     this.img = imageRepo.tree;
     this.x = 0;
     this.y = 0;
@@ -299,6 +332,7 @@ function Tree () {
 } Tree.prototype = new Drawable();
 
 function Food () {
+	// food struct, self explanatory, only needs coordinates
     this.img = imageRepo.food;
     this.x = 0;
     this.y = 0;
@@ -310,13 +344,46 @@ function Food () {
     };
     this.clear = function() {
         this.context.clearRect(this.x, this.y, this.width, this.height);
-    }
+    };
     this.draw = function() {
         this.context.drawImage(this.img, this.x, this.y, game.cellSize, game.cellSize);
     };
 } Food.prototype = new Drawable();
 
+function Shot () {
+	// shot struct, self explanatory, only needs coordinates and directions to move in.
+	// uses previous coords to remove trail drawn.
+	this.img = imageRepo.food;
+    this.directionX = 0;
+    this.directionY = 0;
+    this.prevx = 0;
+    this.prevy = 0;
+    this.x = 0;
+    this.y = 0;
+    this.init = function(x, y, directionX, directionY) {
+    	this.x = x;
+    	this.y = y;
+    	this.directionX = directionX;
+    	this.directionY = directionY;
+    }
+    this.update = function() {
+    	this.prevx = this.x;
+    	this.prevy = this.y;
+    	this.x += this.directionX * game.cellSize;
+    	this.y += this.directionY * game.cellSize;
+    };
+    this.clear = function() {
+        this.context.clearRect(this.prevx, this.prevy, game.cellSize, game.cellSize);
+    };
+    this.draw = function() {
+    	this.clear();
+        this.context.drawImage(this.img, this.x, this.y, game.cellSize, game.cellSize);
+    };
+} Shot.prototype = new Drawable();
+
 function SnakeH () {
+	// snake head struct, different to snake piece as this is used to update the rest of the snake.
+	// the snake head has 4 images representing each direction.
     this.imgR = imageRepo.snakeHR;
     this.imgL = imageRepo.snakeHL;
     this.imgU = imageRepo.snakeHU;
@@ -327,12 +394,14 @@ function SnakeH () {
     this.directionX = 1;
     this.directionY = 0;
     this.update = function() {
+    		// update the directions accordingly.
             this.prevx = this.x;
             this.prevy = this.y;
             this.directionX = this.newDirectionX;
             this.directionY = this.newDirectionY;
-            this.x = this.x + (this.width * this.directionX);
-            this.y = this.y + (this.height * this.directionY);
+            this.x += (this.width * this.directionX);
+            this.y += (this.height * this.directionY);
+            // if the position of the snake is moving out the canvas, update and loop around the canvas.
             if(this.x >= this.canvasWidth)
                 this.x = 0;
             if(this.x < 0)
@@ -341,13 +410,13 @@ function SnakeH () {
                 this.y = 0;
             if(this.y < 0)
                 this.y = this.canvasHeight-game.cellSize;
-
+            // If the snake head has collided with anything, fail.
             if(List.check(List.start.next, List.start.data.x, List.start.data.y) === 1)
             {
                 alert("YOU LOSE! Your score: " + List.size);
                 location.reload();
             }
-
+            // Check if the snake has hit food.
             List.checkFood();
     };
     this.draw = function() {
@@ -356,21 +425,43 @@ function SnakeH () {
 } SnakeH.prototype = new SnakePiece();
 
 function SnakeB () {
-    var timer = 0;
+	// The snake body is also a snake piece, but with no extra luggage.
     this.draw = function() {       
         this.context.drawImage(this.img, this.x, this.y, game.cellSize, game.cellSize);
     };
     this.img = imageRepo.snakeB;
 } SnakeB.prototype = new SnakePiece();
 
+function updateShots() {
+	var head = List.start;
+	// ensure the shot has only been spawned once per key press.
+	if(KEY_STATUS.space)
+    	keyPressed = true;
+    if(keyPressed && !KEY_STATUS.space)
+    {
+        shots[noOfShots] = new Shot();
+        shots[noOfShots].init(head.data.x, head.data.y, head.data.directionX, head.data.directionY);
+        noOfShots++;
+        keyPressed = false;
+    }
+    for(i = 0; i < noOfShots; i++)
+    {
+    	shots[i].update();
+    	shots[i].draw();
+    }
+}
+
 function animate() {
+	// the messy animate loop that needs to be updated.
     requestAnimFrame( animate );
     var current = List.start;
     var speed = current.data.speed;
-    if(KEY_STATUS.space)
-        speed = 5;
     timer += 1;
     current.data.move();
+    // update the shots
+    updateShots();
+
+    // if the timer tick has occurred (time to redraw), then update and draw all snake pieces
     if(timer % speed == 0)
     {
         current.data.update();
