@@ -12,6 +12,7 @@ var keyPressed = false;
 
 function init() {
 	// Retrieve the canvas elements, allowing us to resize them to the correct inner size of window.
+	var canvasBackground = document.getElementById('background');
     var canvasMain = document.getElementById('main');
     var canvasTree = document.getElementById('tree');
     var canvasSnake = document.getElementById('snake');
@@ -25,6 +26,18 @@ function init() {
     // Resize all the canvas elements to match the maximum number of cells within the window size are used.
     if(game.init(gameSize))
     {
+	    context = canvasBackground.getContext("2d"),
+    	img = new Image();
+    	Canvas_Resize(canvasBackground);
+    	canvasBackground.style.background = 'green';
+		img.src = 'img/grass.png';
+
+		img.onload = function(){
+    	// create pattern
+    	var ptrn = context.createPattern(img, 'repeat'); // Create a pattern with this image, and set it to "repeat".
+    	context.fillStyle = ptrn;
+    	context.fillRect(0, 0, canvasBackground.width, canvasBackground.height); // context.fillRect(x, y, width, height);
+    }
         Canvas_Resize(canvasMain);
         Canvas_Resize(canvasSnake);
         Canvas_Resize(canvasTree);
@@ -264,14 +277,14 @@ var imageRepo = new function() {
     this.snakeHL.src = "img/headLeft.jpg";
     this.snakeHR.src = "img/headRight.jpg";
     this.snakeHU.src = "img/headUp.jpg";
-    this.snakeHD.src = "img/headDown.jpg";
-    this.food.src = "img/food2.png";
-    this.tree.src = "img/tree.png";
+    this.snakeHD.src = "img/headDown.jpg	";
+    this.food.src = "img/mousefood.png";
+    this.tree.src = "img/tree1.png"
 }
 
 function SnakePiece() {	
 	// snake piece struct, self explanatory, requires coordinates and the directions to move in.
-	this.speed = 50;
+	this.speed = 30;
     this.prevx = this.x;
     this.prevy = this.y;
 
