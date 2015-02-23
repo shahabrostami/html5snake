@@ -18,10 +18,10 @@ function init() {
     var canvasSnake = document.getElementById('snake');
     var canvasShots = document.getElementById('shots');
 
-    // Make sure the user submits a valid numerical grid size between 10-100.
+    // Make sure the user submits a valid numerical grid size between 10-200.
     var gameSize = "placeholder";
-    while(isNaN(gameSize) || gameSize < 10 || gameSize > 100)
-        gameSize = prompt("What is the game size?\nEnter a number between 10-100");
+    while(isNaN(gameSize) || gameSize < 10 || gameSize > 200)
+        gameSize = prompt("What is the game size?\nEnter a number between 10-200");
 
     // Resize all the canvas elements to match the maximum number of cells within the window size are used.
     if(game.init(gameSize))
@@ -63,7 +63,7 @@ function Spawn_Tree() {
     var data = Calculate_Random_Position();
     while(List.check(List.start, data.x, data.y) == 1 && (data.x !== List.end.data.prevx && data.y !== List.end.data.prevy))
         var data = Calculate_Random_Position();
-    trees[noOfTrees].init(data.x, data.y);
+    trees[noOfTrees].init(data.x, data.y, Math.floor(Math.random() * 4));
     trees[noOfTrees].draw();
     noOfTrees++;
 }
@@ -278,8 +278,8 @@ var imageRepo = new function() {
     this.snakeHR.src = "img/headRight.jpg";
     this.snakeHU.src = "img/headUp.jpg";
     this.snakeHD.src = "img/headDown.jpg	";
-    this.food.src = "img/mousefood.png";
-    this.tree.src = "img/tree1.png"
+    this.food.src = "img/mouse2.png";
+    this.tree.src = "img/trees2.png"
 }
 
 function SnakePiece() {	
@@ -328,9 +328,11 @@ function SnakePiece() {
 function Tree () {
 	// tree struct, self explanatory, only needs coordinates
     this.img = imageRepo.tree;
-    this.x = 0;
-    this.y = 0;
-    this.init = function(x,y) {
+    this.imageIndex = 0;
+    this.imgW = 125;
+    this.imgH = 125;
+    this.init = function(x,y,imageIndex) {
+        this.imageIndex = imageIndex;
         this.width = game.cellSize;
         this.height = game.cellSize;
         this.x = x;
@@ -340,7 +342,7 @@ function Tree () {
         this.context.clearRect(this.x, this.y, this.width, this.height);
     }
     this.draw = function() {
-        this.context.drawImage(this.img, this.x, this.y, game.cellSize, game.cellSize);
+        this.context.drawImage(this.img, 0, this.imageIndex*this.imgH, this.imgW, this.imgH, this.x, this.y, game.cellSize, game.cellSize);
     };
 } Tree.prototype = new Drawable();
 
@@ -359,7 +361,7 @@ function Food () {
         this.context.clearRect(this.x, this.y, this.width, this.height);
     };
     this.draw = function() {
-        this.context.drawImage(this.img, this.x, this.y, game.cellSize, game.cellSize);
+        this.context.drawImage(this.img, 20, 490, 100, 110, this.x, this.y, game.cellSize, game.cellSize);
     };
 } Food.prototype = new Drawable();
 
