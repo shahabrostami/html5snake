@@ -1,13 +1,8 @@
 <!-- hide script from old browsers
 
 var game = new Game(),
-    list = new List(),
-    food,
-    trees = new Array(),
-    shots = new Array(),
     noOfShots = 0,
     noOfTrees = 0,
-    timer = 0,
     keyPressed = false;
 
 function init() {
@@ -23,35 +18,30 @@ function init() {
     }
 }
 
-function Calculate_Random_Position() {
+function calcRandomPosition() {
     var calcX = Math.floor((Math.random() * game.screenWidth)) * game.cellSize,
         calcY = Math.floor((Math.random() * game.screenHeight))* game.cellSize;
     return {x: calcX, y: calcY};
 }
 
-function Spawn_Tree() {
+function spawnTree() {
     // Here we spawn a tree and ensure that it's position is 
-    trees[noOfTrees] = new Tree();
-    var data = Calculate_Random_Position();
-    while(List.check(List.start, data.x, data.y) === 1 && (data.x !== List.end.data.prevx && data.y !== List.end.data.prevy))
-        var data = Calculate_Random_Position();
-    trees[noOfTrees].init(data.x, data.y, Math.floor(Math.random() * 4));
-    trees[noOfTrees].draw();
+    game.trees[noOfTrees] = new Tree();
+    var data = calcRandomPosition();
+    while(game.snake.check(game.snake.start, data.x, data.y) === 1 && (data.x !== game.snake.end.data.prevx && data.y !== game.snake.end.data.prevy))
+        var data = calcRandomPosition();
+    game.trees[noOfTrees].init(data.x, data.y, Math.floor(Math.random() * 4));
+    game.trees[noOfTrees].draw();
     noOfTrees++;
 }
 
-function Spawn_Food() {
-    food.clear();
-    var data = Calculate_Random_Position();
-    while(List.check(List.start, data.x, data.y) === 1 && (data.x !== List.end.data.prevx && data.y !== List.end.data.prevy))
-        var data = Calculate_Random_Position();
-    food.init(data.x, data.y);
-    food.draw();
-}
-
-function Canvas_Resize(canvas) {
-    canvas.width = window.innerWidth - (window.innerWidth % game.cellSize);
-    canvas.height = window.innerHeight - (window.innerHeight % game.cellSize);
+function spawnFood() {
+    game.food.clear();
+    var data = calcRandomPosition();
+    while(game.snake.check(game.snake.start, data.x, data.y) === 1 && (data.x !== game.snake.end.data.prevx && data.y !== game.snake.end.data.prevy))
+        var data = calcRandomPosition();
+    game.food.init(data.x, data.y);
+    game.food.draw();
 }
 
 function initCanvas(canvas, prototypeObj) {
@@ -66,13 +56,11 @@ function initCanvas(canvas, prototypeObj) {
 }
 
 function Game() {
-    // Placeholder values
-    this.cellSize = 0;
-    this.screenWidth = Math.floor(window.innerWidth / 1);
-    this.screenHeight = Math.floor(window.innerHeight / 1);
-
-
     this.init = function(gameSize) {
+        this.timer = 0;
+        this.food = new Food();
+        this.shots = new Array();
+        this.trees = new Array();
         this.cellSize = gameSize;
         this.screenWidth = Math.floor(window.innerWidth / this.cellSize);
         this.screenHeight = Math.floor(window.innerHeight / this.cellSize);
@@ -98,20 +86,19 @@ function Game() {
         // Create the initial snake head and body.
         var snakeH = new SnakeH();
         snakeH.init(game.cellSize*2, 0, game.cellSize, game.cellSize);
-        List.add(snakeH);
+        game.snake.add(snakeH);
         var snakeB = new SnakeB();
         snakeB.init(game.cellSize, 0, game.cellSize, game.cellSize);
-        List.add(snakeB);
+        game.snake.add(snakeB);
         return true;
     }
 
     this.start = function() {
         // Start the game by drawing out the initial snake body, spawning a piece of food and a tree.
-        var current = List.start;
-        food = new Food();
-        Spawn_Food();
-        Spawn_Tree();
-        while(current !== null) {
+        var current = game.snake.start;
+        spawnFood();
+        spawnTree();
+        while(current !== undefined) {
                 current.data.draw();
                 current = current.next;
         }
@@ -134,78 +121,87 @@ function Drawable() {
     };
 }
 
-function List () {
-    List.makeNode=function() {
-        return{data:null, next:null, prev:null};
-    };
-    
-    this.start = null;
-    this.end = null;
-    this.size = null;
-    var size = -2;
-    
-  
-    List.add=function(data) {
-        // Add a snake head if hasn't already.
-        if(this.start === undefined) {
-            this.start=List.makeNode();
-            this.end = this.start;
-            this.end.prev = this.start;
-        }
-        // Otherwise, add a piece of snake body to the list.
-        else {
-            this.end.next=List.makeNode();
-            this.end.next.prev = this.end;
-            this.end=this.end.next;
-        }
-        size++;
-        this.size = size;
-        this.end.data=data;
-    };
+game.snake = function List () {
+    var size = -2,
+        start = null,
+        end = null;
 
-    List.check=function(current, x, y) {
-        // Check to see if the given node 'current' hasn't collided with any trees or other snake pieces.
-        while(current !== null) {
-            if(x === current.data.x && y === current.data.y)
-                return 1;
-            current = current.next;
-        }
-        for(i = 0; i < noOfTrees; i++)
-            if(x === trees[i].x && y === trees[i].y)
-                return 1;
-        return 0;
-    }
+    return {
 
-    List.checkFood=function() {
-        // Check to see if a piece of food has been eaten.
-        var current = List.start.next;
-        if(List.start.data.x === food.x && List.start.data.y === food.y)
-        {
-            // If so, add a new snake piece body, speed up the snake and spawn another food and tree.
-            var snakeB = new SnakeB();
-            snakeB.init(game.cellSize, 0, game.cellSize, game.cellSize);
-            List.add(snakeB);
-            if(List.start.data.speed > 10)
-                List.start.data.speed -= 5;
-            else if(List.start.data.speed > 2)
-                List.start.data.speed -= 1;
-            Spawn_Food();
-            Spawn_Tree();
+        makeNode : function() {
+            return{data:null, next:null, prev:null};
+        },
+
+        getSize : function() {
+            return size;
+        },
+
+        getStart : function() {
+            return start;
+        },
+      
+        add : function(data) {
+            // Add a snake head if hasn't already.
+            if(start === null) {
+                start = this.makeNode();
+                end = start;
+                end.prev = start;
+            }
+            // Otherwise, add a piece of snake body to the list.
+            else {
+                end.next = this.makeNode();
+                end.next.prev = end;
+                end=end.next;
+            }
+            size += 1;
+            end.data=data;
+        },
+
+        check : function(current, x, y) {
+            // Check to see if the given node 'current' hasn't collided with any game.trees or other snake pieces.
+            while(current !== undefined) {
+                if(x === current.data.x && y === current.data.y)
+                    return 1;
+                current = current.next;
+            }
+            for(i = 0; i < noOfTrees; i++)
+                if(x === game.trees[i].x && y === game.trees[i].y)
+                    return 1;
+            return 0;
+        },
+
+        checkFood : function() {
+            // Check to see if a piece of food has been eaten.
+            var current = List.start.next;
+            if(start.data.x === game.food.x && start.data.y === game.food.y)
+            {
+                // If so, add a new snake piece body, speed up the snake and spawn another food and tree.
+                var snakeB = new SnakeB();
+                snakeB.init(game.cellSize, 0, game.cellSize, game.cellSize);
+                add(snakeB);
+                if(start.data.speed > 10)
+                    start.data.speed -= 5;
+                else if(start.data.speed > 2)
+                    start.data.speed -= 1;
+                spawnFood();
+                spawnTree();
+            }
+        },
+        
+        update : function() {
+            // Update all the snake pieces using the previous node as the coordinates.
+            var current = start.next;
+            while(current !== null) {
+                current.data.prevx = current.data.x;
+                current.data.prevy = current.data.y;
+                current.data.x = current.prev.data.prevx;
+                current.data.y = current.prev.data.prevy;
+                current = current.next;
+            }
         }
     }
-    
-    List.update=function() {
-        // Update all the snake pieces using the previous node as the coordinates.
-        var current = List.start.next;
-        while(current !== null) {
-            current.data.prevx = current.data.x;
-            current.data.prevy = current.data.y;
-            current.data.x = current.prev.data.prevx;
-            current.data.y = current.prev.data.prevy;
-            current = current.next;
-        }
-    }
-}
+}();
+
 var imageRepo = new function() {
     // Initialie all images.
     this.snakeHL = new Image();
@@ -405,9 +401,9 @@ function SnakeH () {
             if(this.y < 0)
                 this.y = this.canvasHeight-game.cellSize;
             // If the snake head has collided with anything, fail.
-            if(List.check(List.start.next, List.start.data.x, List.start.data.y) === 1)
+            if(game.snake.check(game.snake.getStart().next, game.snake.start.data.x, game.snake.start.data.y) === 1)
             {
-                alert("YOU LOSE! Your score: " + List.size);
+                alert("YOU LOSE! Your score: " + game.snake.size);
                 location.reload();
             }
             // Check if the snake has hit food.
@@ -427,42 +423,43 @@ function SnakeB () {
 } SnakeB.prototype = new SnakePiece();
 
 function updateShots() {
-    var head = List.start;
+    var head = game.snake.getStart();
     // ensure the shot has only been spawned once per key press.
     if(KEY_STATUS.space)
         keyPressed = true;
     if(keyPressed && !KEY_STATUS.space)
     {
-        shots[noOfShots] = new Shot();
-        shots[noOfShots].init(head.data.x, head.data.y, head.data.directionX, head.data.directionY);
+        game.shots[noOfShots] = new Shot();
+        game.shots[noOfShots].init(head.data.x, head.data.y, head.data.directionX, head.data.directionY);
         noOfShots++;
         keyPressed = false;
     }
     for(i = 0; i < noOfShots; i++)
     {
-        shots[i].update();
-        shots[i].draw();
+        game.shots[i].update();
+        game.shots[i].draw();
     }
 }
 
 function animate() {
     // the messy animate loop that needs to be updated.
+
+    game.timer += 1;
     requestAnimFrame( animate );
-    var current = List.start;
+    var current = game.snake.getStart();
     var speed = current.data.speed;
-    timer += 1;
     current.data.move();
-    // update the shots
+    // update the game.shots
     updateShots();
 
     // if the timer tick has occurred (time to redraw), then update and draw all snake pieces
-    if(timer % speed === 0)
+    if(game.timer % speed === 0)
     {
         current.data.update();
         current.data.draw();
-        List.update();
+        game.snake.update();
         current = current.next;
-        while(current !== null) {
+        while(current !== undefined) {
                 current.data.draw();
                 current = current.next;
         }
