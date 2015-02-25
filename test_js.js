@@ -1,11 +1,6 @@
 <!-- hide script from old browsers
 
 var game = new Game(),
-    food,
-    trees = new Array(),
-    noOfShots = 0,
-    noOfTrees = 0,
-    timer = 0,
     keyPressed = false;
 
 function init() {
@@ -25,26 +20,6 @@ function Calculate_Random_Position() {
     var calcX = Math.floor((Math.random() * game.screenWidth)) * game.cellSize,
         calcY = Math.floor((Math.random() * game.screenHeight))* game.cellSize;
     return {x: calcX, y: calcY};
-}
-
-function Spawn_Tree() {
-    // Here we spawn a tree and ensure that it's position is 
-    trees[noOfTrees] = new Tree();
-    var data = Calculate_Random_Position();
-    while(game.snake.check(game.snake.start, data.x, data.y) === 1 && (data.x !== game.snake.end.data.prevx && data.y !== game.snake.end.data.prevy))
-        var data = Calculate_Random_Position();
-    trees[noOfTrees].init(data.x, data.y, Math.floor(Math.random() * 4));
-    trees[noOfTrees].draw();
-    noOfTrees++;
-}
-
-function Spawn_Food() {
-    food.clear();
-    var data = Calculate_Random_Position();
-    while(game.snake.check(game.snake.start, data.x, data.y) === 1 && (data.x !== game.snake.end.data.prevx && data.y !== game.snake.end.data.prevy))
-        var data = Calculate_Random_Position();
-    food.init(data.x, data.y);
-    food.draw();
 }
 
 function Canvas_Resize(canvas) {
@@ -95,6 +70,8 @@ function Game() {
 
         this.snake = new Snake();
         this.shots = new ShotPool();
+        this.trees = new TreePool();
+        this.food = new Food();
         // Create the initial snake head and body.
         var snakeH = new SnakeH();
         snakeH.init(game.cellSize*2, 0);
@@ -108,9 +85,8 @@ function Game() {
     this.start = function() {
         // Start the game by drawing out the initial snake body, spawning a piece of food and a tree.
         var current = this.snake.start;
-        food = new Food();
-        Spawn_Food();
-        Spawn_Tree();
+        game.food.reset();
+        game.trees.add();
         while(current !== null) {
                 current.data.draw();
                 current = current.next;
@@ -131,7 +107,7 @@ function Drawable() {
     }
 
     this.clear = function() {
-        this.context.clearRect(this.x, this.y, this.width, this.height);
+        this.context.clearRect(this.x, this.y, game.cellSize, game.cellSize);
     };
 
     this.draw = function() {    
@@ -173,27 +149,31 @@ function Snake () {
                 return 1;
             current = current.next;
         }
-        for(i = 0; i < noOfTrees; i++)
-            if(x === trees[i].x && y === trees[i].y)
+        for(i = 0; i < game.trees.noOfTrees; i++)
+        {
+            if(x === game.trees.pool[i].x && y === game.trees.pool[i].y)
                 return 1;
+        }
         return 0;
     }
 
     this.checkFood=function() {
         // Check to see if a piece of food has been eaten.
         var current = this.start.next;
-        if(this.start.data.x === food.x && this.start.data.y === food.y)
+        if(this.start.data.x === game.food.x && this.start.data.y === game.food.y)
         {
-            // If so, add a new snake piece body, speed up the snake and spawn another food and tree.
+            // If so, add a new snake piece body
             var snakeB = new SnakeB();
             snakeB.init(game.cellSize, 0);
-            this.add(snakeB);
+            this.add(snakeB)
+            // Increase speed if necessary
             if(game.speed > 10)
                 game.speed -= 5;
             else if(game.speed > 2)
                 game.speed -= 1;
-            Spawn_Food();
-            Spawn_Tree();
+            // spawn another food and tree.
+            game.food.reset();
+            game.trees.add();
         }
     }
     
@@ -330,21 +310,42 @@ function SnakePiece() {
     };
 } SnakePiece.prototype = new Drawable();
 
+function TreePool () {
+    this.pool = new Array();
+    var noOfTrees = 0;
+    this.noOfTrees = 0;
+
+    this.add = function() {
+        // Here we spawn a tree and ensure that it's position is 
+        this.pool[noOfTrees] = new Tree();
+        var data = Calculate_Random_Position();
+        while(game.snake.check(game.snake.start, data.x, data.y) === 1 
+            && (data.x !== game.snake.end.data.prevx && data.y !== game.snake.end.data.prevy))
+            var data = Calculate_Random_Position();
+        this.pool[noOfTrees].init(data.x, data.y, Math.floor(Math.random() * 4));
+        this.pool[noOfTrees].draw();
+        noOfTrees++;
+        this.noOfTrees = noOfTrees;
+    }
+}
+
 function Tree () {
     // tree struct, self explanatory, only needs coordinates
     this.img = imageRepo.tree;
     this.imageIndex = 0;
+    this.imgRow = 0;
     this.imgW = 125;
     this.imgH = 125;
     this.init = function(x,y,imageIndex) {
         this.imageIndex = imageIndex;
+        this.imgRow = this.imageIndex*this.imgH;
         this.width = game.cellSize;
         this.height = game.cellSize;
         this.x = x;
         this.y = y;
     };
     this.draw = function() {
-        this.context.drawImage(this.img, 0, this.imageIndex*this.imgH, this.imgW, this.imgH, this.x, this.y, game.cellSize, game.cellSize);
+        this.context.drawImage(this.img, 0, this.imgRow, this.imgW, this.imgH, this.x, this.y, this.width, this.height);
     };
 } Tree.prototype = new Drawable();
 
@@ -353,14 +354,31 @@ function Food () {
     this.img = imageRepo.food;
     this.x = 0;
     this.y = 0;
+    this.dx = 0;
+    this.dy = 0;
+    this.sx = 20;
+    this.sy = 490;
+    this.origW = 100;
+    this.origH = 110;
     this.init = function(x,y) {
-        this.width = game.cellSize;
-        this.height = game.cellSize;
-        this.x = x;
-        this.y = y;
+        this.width = game.cellSize/2;
+        this.height = game.cellSize/2;
+        this.x=x;
+        this.y=y;
+        this.dx = x+(game.cellSize/4);
+        this.dy = y+(game.cellSize/4);
     };
     this.draw = function() {
-        this.context.drawImage(this.img, 20, 490, 100, 110, this.x, this.y, game.cellSize, game.cellSize);
+        this.context.drawImage(this.img, this.sx, this.sy, this.origW, this.origH, this.dx, this.dy, this.width, this.height);
+    };
+
+    this.reset = function() {
+        this.clear();
+        var data = Calculate_Random_Position();
+        while(game.snake.check(game.snake.start, data.x, data.y) === 1 && (data.x != game.snake.end.data.prevx && data.y != game.snake.end.data.prevy))
+            var data = Calculate_Random_Position();
+        this.init(data.x, data.y);
+        this.draw();
     };
 } Food.prototype = new Drawable();
 
@@ -388,6 +406,7 @@ function ShotPool () {
         }
     };
 }
+
 function Shot () {
     // shot struct, self explanatory, only needs coordinates and directions to move in.
     // uses previous coords to remove trail drawn.
