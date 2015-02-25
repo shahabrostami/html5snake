@@ -1,10 +1,8 @@
 <!-- hide script from old browsers
 
 var game = new Game(),
-    list = new List(),
     food,
     trees = new Array(),
-    shots = new Array(),
     noOfShots = 0,
     noOfTrees = 0,
     timer = 0,
@@ -33,7 +31,7 @@ function Spawn_Tree() {
     // Here we spawn a tree and ensure that it's position is 
     trees[noOfTrees] = new Tree();
     var data = Calculate_Random_Position();
-    while(List.check(List.start, data.x, data.y) === 1 && (data.x !== List.end.data.prevx && data.y !== List.end.data.prevy))
+    while(game.snake.check(game.snake.start, data.x, data.y) === 1 && (data.x !== game.snake.end.data.prevx && data.y !== game.snake.end.data.prevy))
         var data = Calculate_Random_Position();
     trees[noOfTrees].init(data.x, data.y, Math.floor(Math.random() * 4));
     trees[noOfTrees].draw();
@@ -43,7 +41,7 @@ function Spawn_Tree() {
 function Spawn_Food() {
     food.clear();
     var data = Calculate_Random_Position();
-    while(List.check(List.start, data.x, data.y) === 1 && (data.x !== List.end.data.prevx && data.y !== List.end.data.prevy))
+    while(game.snake.check(game.snake.start, data.x, data.y) === 1 && (data.x !== game.snake.end.data.prevx && data.y !== game.snake.end.data.prevy))
         var data = Calculate_Random_Position();
     food.init(data.x, data.y);
     food.draw();
@@ -70,7 +68,8 @@ function Game() {
     this.cellSize = 0;
     this.screenWidth = Math.floor(window.innerWidth / 1);
     this.screenHeight = Math.floor(window.innerHeight / 1);
-
+    this.timer = 0;
+    this.speed = 30;
 
     this.init = function(gameSize) {
         this.cellSize = gameSize;
@@ -94,20 +93,21 @@ function Game() {
         backgroundContext.fillStyle = ptrn;
         backgroundContext.fillRect(0, 0, canvasBackground.width, canvasBackground.height); 
 
-
+        this.snake = new Snake();
+        this.shots = new ShotPool();
         // Create the initial snake head and body.
         var snakeH = new SnakeH();
-        snakeH.init(game.cellSize*2, 0, game.cellSize, game.cellSize);
-        List.add(snakeH);
+        snakeH.init(game.cellSize*2, 0);
+        game.snake.add(snakeH);
         var snakeB = new SnakeB();
-        snakeB.init(game.cellSize, 0, game.cellSize, game.cellSize);
-        List.add(snakeB);
+        snakeB.init(game.cellSize, 0);
+        game.snake.add(snakeB);
         return true;
     }
 
     this.start = function() {
         // Start the game by drawing out the initial snake body, spawning a piece of food and a tree.
-        var current = List.start;
+        var current = this.snake.start;
         food = new Food();
         Spawn_Food();
         Spawn_Tree();
@@ -120,22 +120,26 @@ function Game() {
 }
 
 function Drawable() {
-    this.init = function(x, y, width, height) {
+    this.init = function(x, y) {
         this.x = x;
         this.y = y;
-        this.width = width;
-        this.height = height;
+        this.width = game.cellSize;
+        this.height = game.cellSize;
 
         this.canvasWidth = game.screenWidth * game.cellSize;
         this.canvasHeight = game.screenHeight * game.cellSize;
     }
 
+    this.clear = function() {
+        this.context.clearRect(this.x, this.y, this.width, this.height);
+    };
+
     this.draw = function() {    
     };
 }
 
-function List () {
-    List.makeNode=function() {
+function Snake () {
+    this.makeNode=function() {
         return{data:null, next:null, prev:null};
     };
     
@@ -143,18 +147,17 @@ function List () {
     this.end = null;
     this.size = null;
     var size = -2;
-    
   
-    List.add=function(data) {
+    this.add=function(data) {
         // Add a snake head if hasn't already.
-        if(this.start === undefined) {
-            this.start=List.makeNode();
+        if(this.start === null) {
+            this.start=this.makeNode();
             this.end = this.start;
             this.end.prev = this.start;
         }
         // Otherwise, add a piece of snake body to the list.
         else {
-            this.end.next=List.makeNode();
+            this.end.next=this.makeNode();
             this.end.next.prev = this.end;
             this.end=this.end.next;
         }
@@ -163,7 +166,7 @@ function List () {
         this.end.data=data;
     };
 
-    List.check=function(current, x, y) {
+    this.check=function(current, x, y) {
         // Check to see if the given node 'current' hasn't collided with any trees or other snake pieces.
         while(current !== null) {
             if(x === current.data.x && y === current.data.y)
@@ -176,27 +179,27 @@ function List () {
         return 0;
     }
 
-    List.checkFood=function() {
+    this.checkFood=function() {
         // Check to see if a piece of food has been eaten.
-        var current = List.start.next;
-        if(List.start.data.x === food.x && List.start.data.y === food.y)
+        var current = this.start.next;
+        if(this.start.data.x === food.x && this.start.data.y === food.y)
         {
             // If so, add a new snake piece body, speed up the snake and spawn another food and tree.
             var snakeB = new SnakeB();
-            snakeB.init(game.cellSize, 0, game.cellSize, game.cellSize);
-            List.add(snakeB);
-            if(List.start.data.speed > 10)
-                List.start.data.speed -= 5;
-            else if(List.start.data.speed > 2)
-                List.start.data.speed -= 1;
+            snakeB.init(game.cellSize, 0);
+            this.add(snakeB);
+            if(game.speed > 10)
+                game.speed -= 5;
+            else if(game.speed > 2)
+                game.speed -= 1;
             Spawn_Food();
             Spawn_Tree();
         }
     }
     
-    List.update=function() {
+    this.updatePositions=function() {
         // Update all the snake pieces using the previous node as the coordinates.
-        var current = List.start.next;
+        var current = this.start.next;
         while(current !== null) {
             current.data.prevx = current.data.x;
             current.data.prevy = current.data.y;
@@ -204,6 +207,24 @@ function List () {
             current.data.y = current.prev.data.prevy;
             current = current.next;
         }
+    }
+
+    this.updateAll=function() {
+        this.start.data.move();
+        if(game.timer % game.speed === 0)
+        {
+            this.start.data.update();
+            this.start.data.draw();
+            
+            this.updatePositions();
+            var current = this.start.next;
+            while(current !== null) {
+                    current.data.draw();
+                    current = current.next;
+            }
+            this.end.data.clear();
+        }
+
     }
 }
 var imageRepo = new function() {
@@ -216,8 +237,9 @@ var imageRepo = new function() {
     this.food = new Image();
     this.tree = new Image();
     this.grass = new Image();
+    this.fire = new Image();
     
-    var numImages = 8;
+    var numImages = 9;
     var numImagesLoaded = 0;
     function imageLoaded() {
         numImagesLoaded++;
@@ -250,6 +272,9 @@ var imageRepo = new function() {
     this.grass.onload = function(){
         imageLoaded();
     }
+    this.fire.onload = function(){
+        imageLoaded();
+    }
     
     this.snakeB.src = "img/body.jpg";
     this.snakeHL.src = "img/headLeft.jpg";
@@ -259,14 +284,15 @@ var imageRepo = new function() {
     this.food.src = "img/mouse2.png";
     this.tree.src = "img/trees2.png"
     this.grass.src = 'img/grass.png';
+    this.fire.src = 'img/fire.png';
 }
 
 function SnakePiece() { 
     // snake piece struct, self explanatory, requires coordinates and the directions to move in.
-    this.speed = 30;
     this.prevx = this.x;
     this.prevy = this.y;
 
+    // we override Drawable's clear function as we need to remove it's previous position, not it's current one.
     this.clear = function() {
         this.context.clearRect(this.prevx, this.prevy, this.width, this.height);
     }
@@ -317,9 +343,6 @@ function Tree () {
         this.x = x;
         this.y = y;
     };
-    this.clear = function() {
-        this.context.clearRect(this.x, this.y, this.width, this.height);
-    }
     this.draw = function() {
         this.context.drawImage(this.img, 0, this.imageIndex*this.imgH, this.imgW, this.imgH, this.x, this.y, game.cellSize, game.cellSize);
     };
@@ -336,18 +359,39 @@ function Food () {
         this.x = x;
         this.y = y;
     };
-    this.clear = function() {
-        this.context.clearRect(this.x, this.y, this.width, this.height);
-    };
     this.draw = function() {
         this.context.drawImage(this.img, 20, 490, 100, 110, this.x, this.y, game.cellSize, game.cellSize);
     };
 } Food.prototype = new Drawable();
 
+
+function ShotPool () {
+    this.pool = new Array();
+    var noOfShots = 0;
+    
+    this.update = function() {
+        var head = game.snake.start;
+        // ensure the shot has only been spawned once per key press.
+        if(KEY_STATUS.space)
+            keyPressed = true;
+        if(keyPressed && !KEY_STATUS.space)
+        {
+            this.pool[noOfShots] = new Shot();
+            this.pool[noOfShots].init(head.data.x, head.data.y, head.data.directionX, head.data.directionY);
+            noOfShots++;
+            keyPressed = false;
+        }
+        for(i = 0; i < noOfShots; i++)
+        {
+            this.pool[i].update();
+            this.pool[i].draw();
+        }
+    };
+}
 function Shot () {
     // shot struct, self explanatory, only needs coordinates and directions to move in.
     // uses previous coords to remove trail drawn.
-    this.img = imageRepo.food;
+    this.img = imageRepo.fire;
     this.directionX = 0;
     this.directionY = 0;
     this.prevx = 0;
@@ -371,7 +415,7 @@ function Shot () {
     };
     this.draw = function() {
         this.clear();
-        this.context.drawImage(this.img, this.x, this.y, game.cellSize, game.cellSize);
+        this.context.drawImage(this.img, 0, 0, 40, 40, this.x, this.y, game.cellSize, game.cellSize);
     };
 } Shot.prototype = new Drawable();
 
@@ -405,13 +449,13 @@ function SnakeH () {
             if(this.y < 0)
                 this.y = this.canvasHeight-game.cellSize;
             // If the snake head has collided with anything, fail.
-            if(List.check(List.start.next, List.start.data.x, List.start.data.y) === 1)
+            if(game.snake.check(game.snake.start.next, game.snake.start.data.x, game.snake.start.data.y) === 1)
             {
-                alert("YOU LOSE! Your score: " + List.size);
+                alert("YOU LOSE! Your score: " + game.snake.size);
                 location.reload();
             }
             // Check if the snake has hit food.
-            List.checkFood();
+            game.snake.checkFood();
     };
     this.draw = function() {
             this.context.drawImage(this.img, this.x, this.y, game.cellSize, game.cellSize);
@@ -426,48 +470,14 @@ function SnakeB () {
     this.img = imageRepo.snakeB;
 } SnakeB.prototype = new SnakePiece();
 
-function updateShots() {
-    var head = List.start;
-    // ensure the shot has only been spawned once per key press.
-    if(KEY_STATUS.space)
-        keyPressed = true;
-    if(keyPressed && !KEY_STATUS.space)
-    {
-        shots[noOfShots] = new Shot();
-        shots[noOfShots].init(head.data.x, head.data.y, head.data.directionX, head.data.directionY);
-        noOfShots++;
-        keyPressed = false;
-    }
-    for(i = 0; i < noOfShots; i++)
-    {
-        shots[i].update();
-        shots[i].draw();
-    }
-}
-
 function animate() {
     // the messy animate loop that needs to be updated.
     requestAnimFrame( animate );
-    var current = List.start;
-    var speed = current.data.speed;
-    timer += 1;
-    current.data.move();
-    // update the shots
-    updateShots();
+    game.timer += 1;
 
-    // if the timer tick has occurred (time to redraw), then update and draw all snake pieces
-    if(timer % speed === 0)
-    {
-        current.data.update();
-        current.data.draw();
-        List.update();
-        current = current.next;
-        while(current !== null) {
-                current.data.draw();
-                current = current.next;
-        }
-        List.end.data.clear();
-    }
+    // update the shots
+    game.shots.update();
+    game.snake.updateAll();
 }
 
 /**
