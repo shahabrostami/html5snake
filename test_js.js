@@ -16,13 +16,13 @@ function init() {
     }
 }
 
-function Calculate_Random_Position() {
-    var calcX = Math.floor((Math.random() * game.screenWidth)) * game.cellSize,
-        calcY = Math.floor((Math.random() * game.screenHeight))* game.cellSize;
+function calcRandomPosition() {
+    var calcX = Math.floor((Math.random() * game.screenCellWidth)) * game.cellSize,
+        calcY = Math.floor((Math.random() * game.screenCellHeight))* game.cellSize;
     return {x: calcX, y: calcY};
 }
 
-function Canvas_Resize(canvas) {
+function canvasResize(canvas) {
     canvas.width = window.innerWidth - (window.innerWidth % game.cellSize);
     canvas.height = window.innerHeight - (window.innerHeight % game.cellSize);
 }
@@ -41,15 +41,15 @@ function initCanvas(canvas, prototypeObj) {
 function Game() {
     // Placeholder values
     this.cellSize = 0;
-    this.screenWidth = Math.floor(window.innerWidth / 1);
-    this.screenHeight = Math.floor(window.innerHeight / 1);
+    this.canvasWidth = Math.floor(window.innerWidth / 1);
+    this.canvasHeight = Math.floor(window.innerHeight / 1);
     this.timer = 0;
     this.speed = 30;
 
     this.init = function(gameSize) {
         this.cellSize = gameSize;
-        this.screenWidth = Math.floor(window.innerWidth / this.cellSize);
-        this.screenHeight = Math.floor(window.innerHeight / this.cellSize);
+        this.screenCellWidth = Math.floor(window.innerWidth / this.cellSize);
+        this.screenCellHeight = Math.floor(window.innerHeight / this.cellSize);
         // Retrieve the canvas elements, allowing us to resize them to the correct inner size of window.
         var canvasBackground = document.getElementById('background'),
             canvasMain = document.getElementById('main'),
@@ -102,11 +102,12 @@ function Drawable() {
         this.width = game.cellSize;
         this.height = game.cellSize;
 
-        this.canvasWidth = game.screenWidth * game.cellSize;
-        this.canvasHeight = game.screenHeight * game.cellSize;
+        this.canvasWidth = game.screenCellWidth * game.cellSize;
+        this.canvasHeight = game.screenCellHeight * game.cellSize;
     }
 
     this.clear = function() {
+        console.log("lol");
         this.context.clearRect(this.x, this.y, game.cellSize, game.cellSize);
     };
 
@@ -318,15 +319,30 @@ function TreePool () {
     this.add = function() {
         // Here we spawn a tree and ensure that it's position is 
         this.pool[noOfTrees] = new Tree();
-        var data = Calculate_Random_Position();
+        var data = calcRandomPosition();
         while(game.snake.check(game.snake.start, data.x, data.y) === 1 
             && (data.x !== game.snake.end.data.prevx && data.y !== game.snake.end.data.prevy))
-            var data = Calculate_Random_Position();
+            var data = calcRandomPosition();
         this.pool[noOfTrees].init(data.x, data.y, Math.floor(Math.random() * 4));
         this.pool[noOfTrees].draw();
         noOfTrees++;
         this.noOfTrees = noOfTrees;
     }
+
+    this.checkHit = function(x,y) {
+       var i = this.pool.length;
+        while (i--) {
+            if(this.pool[i].x === x && this.pool[i].y === y)
+            {
+                noOfTrees--;
+                this.noOfTrees = noOfTrees;
+                this.pool[i].clear();
+                this.pool.splice(i, 1);
+                return 1;
+            }
+        }
+        return 0;
+    };
 }
 
 function Tree () {
@@ -374,9 +390,9 @@ function Food () {
 
     this.reset = function() {
         this.clear();
-        var data = Calculate_Random_Position();
+        var data = calcRandomPosition();
         while(game.snake.check(game.snake.start, data.x, data.y) === 1 && (data.x != game.snake.end.data.prevx && data.y != game.snake.end.data.prevy))
-            var data = Calculate_Random_Position();
+            var data = calcRandomPosition();
         this.init(data.x, data.y);
         this.draw();
     };
@@ -403,6 +419,14 @@ function ShotPool () {
         {
             this.pool[i].update();
             this.pool[i].draw();
+            if(game.trees.checkHit(this.pool[i].x, this.pool[i].y) === 1 ||
+                ((this.pool[i].x < 0 || this.pool[i].x > game.canvasWidth) &&
+                (this.pool[i].y < 0 || this.pool[i].y > game.canvasHeight)))
+            {
+                noOfShots--;
+                this.pool[i].clear();
+                this.pool.splice(i, 1);
+            }
         }
     };
 }
@@ -429,11 +453,14 @@ function Shot () {
         this.x += this.directionX * game.cellSize;
         this.y += this.directionY * game.cellSize;
     };
-    this.clear = function() {
+    this.clearPrev = function() {
         this.context.clearRect(this.prevx, this.prevy, game.cellSize, game.cellSize);
     };
+    this.clear = function() {
+        this.context.clearRect(this.x, this.y, game.cellSize, game.cellSize);
+    };
     this.draw = function() {
-        this.clear();
+        this.clearPrev();
         this.context.drawImage(this.img, 0, 0, 40, 40, this.x, this.y, game.cellSize, game.cellSize);
     };
 } Shot.prototype = new Drawable();
@@ -488,6 +515,7 @@ function SnakeB () {
     };
     this.img = imageRepo.snakeB;
 } SnakeB.prototype = new SnakePiece();
+
 
 function animate() {
     // the messy animate loop that needs to be updated.
