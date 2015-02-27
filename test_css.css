@@ -3,7 +3,12 @@ body {
 	height: 100%;
 	margin: 0px; 
 }
-
+canvas {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	background: transparent;
+}
 canvas#main {
 	 border:1px solid #DDD;
 }
