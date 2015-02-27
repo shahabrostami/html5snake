@@ -25,7 +25,6 @@ function calcRandomPosition() {
 function initCanvas(canvas, prototypeObj) {
     canvas.width = window.innerWidth - (window.innerWidth % game.cellSize);
     canvas.height = window.innerHeight - (window.innerHeight % game.cellSize);
-    console.log(window.innerWidth);
     if(canvas.getContext && prototypeObj !== undefined) {
             canvas = canvas.getContext('2d');
             prototypeObj.prototype.context = canvas;
@@ -103,7 +102,6 @@ function Drawable() {
     }
 
     this.clear = function() {
-        console.log("lol");
         this.context.clearRect(this.x, this.y, game.cellSize, game.cellSize);
     };
 
@@ -182,6 +180,10 @@ function Snake () {
             current.data.prevy = current.data.y;
             current.data.x = current.prev.data.prevx;
             current.data.y = current.prev.data.prevy;
+            current.data.prevDirectionX = current.data.directionX;
+            current.data.prevDirectionY = current.data.directionY;
+            current.data.directionX = current.prev.data.prevDirectionX;
+            current.data.directionY = current.prev.data.prevDirectionY;
             current = current.next;
         }
     }
@@ -196,6 +198,7 @@ function Snake () {
             this.updatePositions();
             var current = this.start.next;
             while(current !== null) {
+                    current.data.update(current.next);
                     current.data.draw();
                     current = current.next;
             }
@@ -210,13 +213,18 @@ var imageRepo = new function() {
     this.snakeHR = new Image();
     this.snakeHU = new Image();
     this.snakeHD = new Image();
-    this.snakeB = new Image();
+    this.bodyHoriz = new Image();
+    this.bodyVert = new Image();
+    this.bodyRU = new Image();
+    this.bodyRD = new Image();
+    this.bodyLU = new Image();
+    this.bodyLD = new Image();
     this.food = new Image();
     this.tree = new Image();
     this.grass = new Image();
     this.fire = new Image();
     
-    var numImages = 9;
+    var numImages = 14;
     var numImagesLoaded = 0;
     function imageLoaded() {
         numImagesLoaded++;
@@ -237,7 +245,22 @@ var imageRepo = new function() {
     this.snakeHR.onload = function () {
         imageLoaded();
     }
-    this.snakeB.onload = function () {
+    this.bodyHoriz.onload = function () {
+        imageLoaded();
+    }
+    this.bodyVert.onload = function () {
+        imageLoaded();
+    }
+    this.bodyRU.onload = function () {
+        imageLoaded();
+    }
+    this.bodyRD.onload = function () {
+        imageLoaded();
+    }
+    this.bodyLU.onload = function () {
+        imageLoaded();
+    }
+    this.bodyLD.onload = function () {
         imageLoaded();
     }
     this.food.onload = function () {
@@ -253,12 +276,12 @@ var imageRepo = new function() {
         imageLoaded();
     }
     
-    this.snakeB.src = "img/bodyHoriz.png";
-    this.snakeB.src = "img/bodyVert.png";
-    this.snakeB.src = "img/bodyRU.png";
-    this.snakeB.src = "img/bodyRD.png";
-    this.snakeB.src = "img/bodyLU.png";
-    this.snakeB.src = "img/bodyLD.png";
+    this.bodyHoriz.src = "img/bodyHoriz.png";
+    this.bodyVert.src = "img/bodyVert.png";
+    this.bodyRU.src = "img/bodyRU.png";
+    this.bodyRD.src = "img/bodyRD.png";
+    this.bodyLU.src = "img/bodyLU.png";
+    this.bodyLD.src = "img/bodyLD.png";
     this.snakeHL.src = "img/headLeft.png";
     this.snakeHR.src = "img/headRight.png";
     this.snakeHU.src = "img/headUp.png";
@@ -271,16 +294,16 @@ var imageRepo = new function() {
 
 function SnakePiece() { 
     // snake piece struct, self explanatory, requires coordinates and the directions to move in.
-    this.prevx = this.x;
-    this.prevy = this.y;
-    this.newDirectionX = 1;
-    this.newDirectionY = 0;
+    this.prevx = 0;
+    this.prevy = 0;
     this.directionX = 1;
     this.directionY = 0;
+    this.prevDirectionX = 1;
+    this.prevDirectionY = 0;
 
     // we override Drawable's clear function as we need to remove it's previous position, not it's current one.
     this.clear = function() {
-        this.context.clearRect(this.prevx, this.prevy, this.width, this.height);
+        this.context.clearRect(this.prevx, this.prevy, game.cellSize, game.cellSize);
     }
     
     this.move = function() {
@@ -288,31 +311,37 @@ function SnakePiece() {
         if (KEY_STATUS.left || KEY_STATUS.right ||
             KEY_STATUS.down || KEY_STATUS.up) {
             if (KEY_STATUS.left) {
-                if(this.directionX === 1)
+                if(this.prevDirectionX === 1)
                     return;
                 this.img = this.imgL;
-                this.newDirectionX = -1;
-                this.newDirectionY = 0;
+                this.directionX = -1;
+                this.directionY = 0;
             } else if (KEY_STATUS.right) {
-                if(this.directionX === -1)
+                if(this.prevDirectionX === -1)
                     return;
                 this.img = this.imgR;
-                this.newDirectionX = 1;
-                this.newDirectionY = 0;
+                this.directionX = 1;
+                this.directionY = 0;
             } else if (KEY_STATUS.up) {
-                if(this.directionY === 1)
+                if(this.prevDirectionY === 1)
                     return;
                 this.img = this.imgU;
-                this.newDirectionY = -1;
-                this.newDirectionX = 0;
+                this.directionY = -1;
+                this.directionX = 0;
             } else if (KEY_STATUS.down) {
-                if(this.directionY === -1)
+                if(this.prevDirectionY === -1)
                     return;
                 this.img = this.imgD;
-                this.newDirectionY = 1;
-                this.newDirectionX = 0;
+                this.directionY = 1;
+                this.directionX = 0;
             }
         }
+    };
+
+    this.draw = function() {
+        this.clear();
+        this.context.drawImage(this.img, this.x, this.y, game.cellSize, game.cellSize);
+        this.clear();
     };
 } SnakePiece.prototype = new Drawable();
 
@@ -328,10 +357,10 @@ function SnakeH () {
             // update the directions accordingly.
             this.prevx = this.x;
             this.prevy = this.y;
-            this.directionX = this.newDirectionX;
-            this.directionY = this.newDirectionY;
-            this.x += (this.width * this.directionX);
-            this.y += (this.height * this.directionY);
+            this.prevDirectionX = this.directionX;
+            this.prevDirectionY = this.directionY;
+            this.x += (this.width * this.prevDirectionX);
+            this.y += (this.height * this.prevDirectionY);
             // if the position of the snake is moving out the canvas, update and loop around the canvas.
             if(this.x >= this.canvasWidth)
                 this.x = 0;
@@ -350,9 +379,6 @@ function SnakeH () {
             // Check if the snake has hit food.
             game.snake.checkFood();
     };
-    this.draw = function() {
-            this.context.drawImage(this.img, this.x, this.y, game.cellSize, game.cellSize);
-    };
 } SnakeH.prototype = new SnakePiece();
 
 function SnakeB () {
@@ -360,7 +386,29 @@ function SnakeB () {
     this.draw = function() {       
         this.context.drawImage(this.img, this.x, this.y, game.cellSize, game.cellSize);
     };
-    this.img = imageRepo.snakeB;
+    this.update = function(next) {
+        if(this.prevDirectionX === 1 && this.directionY === 1)
+            this.img = imageRepo.bodyRD;
+        else if(this.prevDirectionX === 1 && this.directionY === -1)
+            this.img = imageRepo.bodyRU;
+        else if(this.prevDirectionX === -1 && this.directionY === 1)
+            this.img = imageRepo.bodyLD;
+        else if(this.prevDirectionX === -1 && this.directionY === -1)
+            this.img = imageRepo.bodyLU;
+        else if(this.prevDirectionY === 1 && this.directionX === 1)
+            this.img = imageRepo.bodyLU;
+        else if(this.prevDirectionY === 1 && this.directionX === -1)
+            this.img = imageRepo.bodyRU;
+        else if(this.prevDirectionY === -1 && this.directionX === 1)
+            this.img = imageRepo.bodyLD;
+        else if(this.prevDirectionY === -1 && this.directionX === -1)
+            this.img = imageRepo.bodyRD;
+        else if(this.prevDirectionX === 0 && this.directionX === 0)
+            this.img = imageRepo.bodyVert;
+        else if(this.prevDirectionY === 0 && this.directionY === 0)
+            this.img = imageRepo.bodyHoriz;
+    };
+    this.img = imageRepo.bodyHoriz;
 } SnakeB.prototype = new SnakePiece();
 
 function TreePool () {
@@ -455,7 +503,7 @@ function ShotPool () {
         if(keyPressed && !KEY_STATUS.space)
         {
             this.pool[noOfShots] = new Shot();
-            this.pool[noOfShots].init(head.data.x, head.data.y, head.data.directionX, head.data.directionY);
+            this.pool[noOfShots].init(head.data.x, head.data.y, head.data.prevDirectionX, head.data.prevDirectionY);
             noOfShots++;
             keyPressed = false;
         }
@@ -479,23 +527,23 @@ function Shot () {
     // shot struct, self explanatory, only needs coordinates and directions to move in.
     // uses previous coords to remove trail drawn.
     this.img = imageRepo.fire;
-    this.directionX = 0;
-    this.directionY = 0;
+    this.prevDirectionX = 0;
+    this.prevDirectionY = 0;
     this.prevx = 0;
     this.prevy = 0;
     this.x = 0;
     this.y = 0;
-    this.init = function(x, y, directionX, directionY) {
+    this.init = function(x, y, prevDirectionX, prevDirectionY) {
         this.x = x;
         this.y = y;
-        this.directionX = directionX;
-        this.directionY = directionY;
+        this.prevDirectionX = prevDirectionX;
+        this.prevDirectionY = prevDirectionY;
     }
     this.update = function() {
         this.prevx = this.x;
         this.prevy = this.y;
-        this.x += this.directionX * game.cellSize;
-        this.y += this.directionY * game.cellSize;
+        this.x += this.prevDirectionX * game.cellSize;
+        this.y += this.prevDirectionY * game.cellSize;
     };
     this.clearPrev = function() {
         this.context.clearRect(this.prevx, this.prevy, game.cellSize, game.cellSize);
