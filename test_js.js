@@ -141,7 +141,7 @@ function Snake () {
     this.check=function(current, x, y) {
         // Check to see if the given node 'current' hasn't collided with any trees or other snake pieces or the food.
         while(current !== null) {
-            if(x == current.data.prevx && y == current.data.prevy)
+            if(x == current.data.prevx && y == current.data.prevy && current.next !== null)
                 return 1;
             if(x == current.data.x && y == current.data.y)
                 return 1;
@@ -151,26 +151,6 @@ function Snake () {
         {
             if(x == game.trees.pool[i].x && y == game.trees.pool[i].y)
                 return 1;
-        }
-    }
-
-    this.checkFood=function() {
-        // Check to see if a piece of food has been eaten.
-        var current = this.start.next;
-        if(this.start.data.x === game.food.x && this.start.data.y === game.food.y)
-        {
-            // If so, add a new snake piece body
-            var snakeB = new SnakeB();
-            snakeB.init(game.cellSize, 0);
-            this.add(snakeB)
-            // Increase speed if necessary
-            if(game.speed > 10)
-                game.speed -= 5;
-            else if(game.speed > 2)
-                game.speed -= 1;
-            // spawn another food and tree.
-            game.trees.add();
-            game.food.reset();
         }
     }
     
@@ -379,7 +359,7 @@ function SnakeH () {
                 location.reload();
             }
             // Check if the snake has hit food.
-            game.snake.checkFood();
+            game.food.checkEat();
     };
 } SnakeH.prototype = new SnakePiece();
 
@@ -435,8 +415,7 @@ function TreePool () {
     this.checkHit = function(x,y) {
        var i = this.pool.length;
         while (i--) {
-            if(this.pool[i].x === x && this.pool[i].y === y)
-            {
+            if(this.pool[i].x === x && this.pool[i].y === y) {
                 noOfTrees--;
                 this.noOfTrees = noOfTrees;
                 this.pool[i].clear();
@@ -492,6 +471,33 @@ function Food () {
         this.init(data.x, data.y);
         this.draw();
     };
+
+    this.checkEat=function() {
+        // Check to see if a piece of food has been eaten.
+        var current = game.snake.start.next;
+        if(game.snake.start.data.x === game.food.x && game.snake.start.data.y === game.food.y)
+        {
+            // If so, add a new snake piece body
+            var snakeB = new SnakeB();
+            snakeB.init(game.cellSize, 0);
+            game.snake.add(snakeB)
+            // Increase speed if necessary
+            if(game.speed > 20)
+                game.speed -= 5;
+            else if(game.speed > 10)
+                game.speed -= 1;
+            // spawn another food and tree.
+            game.trees.add();
+            game.food.reset();
+        }
+    };
+    this.checkHit = function(x,y) {
+        if(this.x === x && this.y === y) {
+            game.food.reset();
+            return 1;
+        }
+        return 0;
+    };
 } Food.prototype = new Drawable();
 
 
@@ -516,9 +522,10 @@ function ShotPool () {
             this.pool[i].update();
             this.pool[i].draw();
             if(game.trees.checkHit(this.pool[i].x, this.pool[i].y) === 1 ||
-                ((this.pool[i].x < 0 || this.pool[i].x > game.canvasWidth) &&
-                (this.pool[i].y < 0 || this.pool[i].y > game.canvasHeight)))
-            {
+                // game.food.checkHit(this.pool[i].x, this.pool[i].y) === 1 ||
+                ((this.pool[i].x < 0 || this.pool[i].x > game.canvasWidth) ||
+                (this.pool[i].y < 0 || this.pool[i].y > game.canvasHeight))) {
+                console.log("shotremoved");
                 noOfShots--;
                 this.pool[i].clear();
                 this.pool.splice(i, 1);
