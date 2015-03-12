@@ -510,7 +510,7 @@ function ShotPool () {
         // ensure the shot has only been spawned once per key press.
         if(KEY_STATUS.space)
             keyPressed = true;
-        if(keyPressed && !KEY_STATUS.space)
+        if(keyPressed && !KEY_STATUS.space && noOfShots < 2)
         {
             this.pool[noOfShots] = new Shot();
             this.pool[noOfShots].init(head.data.x, head.data.y, head.data.prevDirectionX, head.data.prevDirectionY);
@@ -525,7 +525,6 @@ function ShotPool () {
                 // game.food.checkHit(this.pool[i].x, this.pool[i].y) === 1 ||
                 ((this.pool[i].x < 0 || this.pool[i].x > game.canvasWidth) ||
                 (this.pool[i].y < 0 || this.pool[i].y > game.canvasHeight))) {
-                console.log("shotremoved");
                 noOfShots--;
                 this.pool[i].clear();
                 this.pool.splice(i, 1);
@@ -534,10 +533,12 @@ function ShotPool () {
     };
 }
 
+
 function Shot () {
     // shot struct, self explanatory, only needs coordinates and directions to move in.
     // uses previous coords to remove trail drawn.
     this.img = imageRepo.fire;
+    this.counter = 0;
     this.prevDirectionX = 0;
     this.prevDirectionY = 0;
     this.prevx = 0;
@@ -553,8 +554,8 @@ function Shot () {
     this.update = function() {
         this.prevx = this.x;
         this.prevy = this.y;
-        this.x += this.prevDirectionX * game.cellSize;
-        this.y += this.prevDirectionY * game.cellSize;
+        this.x += this.prevDirectionX * game.cellSize/2;
+        this.y += this.prevDirectionY * game.cellSize/2;
     };
     this.clearPrev = function() {
         this.context.clearRect(this.prevx, this.prevy, game.cellSize, game.cellSize);
@@ -563,8 +564,13 @@ function Shot () {
         this.context.clearRect(this.x, this.y, game.cellSize, game.cellSize);
     };
     this.draw = function() {
+        if(game.timer % 5 == 0) {
+            this.counter++;
+            if(this.counter > 2)
+                this.counter=0;
+        }
         this.clearPrev();
-        this.context.drawImage(this.img, 0, 0, 40, 40, this.x, this.y, game.cellSize, game.cellSize);
+        this.context.drawImage(this.img, this.counter*100, 0, 100, 100, this.x, this.y, game.cellSize, game.cellSize);
     };
 } Shot.prototype = new Drawable();
 
