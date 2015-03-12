@@ -12,3 +12,7 @@ canvas {
 canvas#main {
 	 border:1px solid #DDD;
 }
+canvas#score {
+    color: #000; /* Fallback for older browsers */
+    color: rgba(0, 0, 0, 0.5);
+}

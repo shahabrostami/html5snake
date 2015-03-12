@@ -47,14 +47,16 @@ function Game() {
         this.screenCellHeight = Math.floor(window.innerHeight / this.cellSize);
         // Retrieve the canvas elements, allowing us to resize them to the correct inner size of window.
         var canvasBackground = document.getElementById('background'),
-            canvasMain = document.getElementById('main'),
+            canvasFood = document.getElementById('food'),
             canvasTree = document.getElementById('tree'),
             canvasSnake = document.getElementById('snake'),
             canvasShots = document.getElementById('shots');
+            canvasScore = document.getElementById('score');
 
         initCanvas(canvasBackground);
-        initCanvas(canvasMain, Food);
+        initCanvas(canvasFood, Food);
         initCanvas(canvasTree, Tree);
+        initCanvas(canvasScore, Score);
         initCanvas(canvasShots, Shot);
         initCanvas(canvasSnake, SnakePiece);
         
@@ -67,6 +69,7 @@ function Game() {
         this.shots = new ShotPool();
         this.trees = new TreePool();
         this.food = new Food();
+        this.score = new Score();
         // Create the initial snake head and body.
         var snakeH = new SnakeH();
         snakeH.init(game.cellSize*2, 0);
@@ -84,7 +87,7 @@ function Game() {
                 current.data.draw();
                 current = current.next;
         }
-
+        game.score.draw();
         game.food.reset();
         game.trees.add();
         animate();
@@ -97,7 +100,6 @@ function Drawable() {
         this.y = y;
         this.width = game.cellSize;
         this.height = game.cellSize;
-
         this.canvasWidth = game.screenCellWidth * game.cellSize;
         this.canvasHeight = game.screenCellHeight * game.cellSize;
     }
@@ -109,6 +111,19 @@ function Drawable() {
     this.draw = function() {    
     };
 }
+
+function Score() {
+    this.context.font = '72px Arial';
+    this.x = game.screenCellWidth * game.cellSize - 100;
+    this.y = 100;
+    this.width = 200;
+    this.height = 200;
+
+    this.draw = function() {
+        this.context.clearRect(this.x-100, this.y-100, this.width, this.height);
+        this.context.fillText(game.snake.size, this.x, this.y);
+    };
+} Score.prototype = new Drawable();
 
 function Snake () {
     this.makeNode=function() {
@@ -489,6 +504,7 @@ function Food () {
             // spawn another food and tree.
             game.trees.add();
             game.food.reset();
+            game.score.draw();
         }
     };
     this.checkHit = function(x,y) {
@@ -510,7 +526,7 @@ function ShotPool () {
         // ensure the shot has only been spawned once per key press.
         if(KEY_STATUS.space)
             keyPressed = true;
-        if(keyPressed && !KEY_STATUS.space && noOfShots < 2)
+        if(keyPressed && !KEY_STATUS.space && noOfShots < 1)
         {
             this.pool[noOfShots] = new Shot();
             this.pool[noOfShots].init(head.data.x, head.data.y, head.data.prevDirectionX, head.data.prevDirectionY);
